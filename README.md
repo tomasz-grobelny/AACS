@@ -32,6 +32,8 @@ Development tools used:
     * Prettier - Code formatter
 
 # Design
+Android Auto Protocol is not documented. However, it has been reverse engineered and open source implementation exists (see https://github.com/opencardev/openauto). While this code does not use a single line from openauto, openauto is extremenly useful while developing and testing AAServer.
+
 The idea is to have AAServer that sets up all communication with AA enabled headunit, takes care of USB communication, encryption and exposes AA headunit capabilities through Unix domain socket.
 
 Second part of the project is to create GStreamer plugin that would connect to the socket and allow to stream any content to the headunit.
