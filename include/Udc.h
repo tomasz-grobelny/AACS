@@ -1,6 +1,7 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
 #include <usbg/usbg.h>
+#pragma once
 
 class Library;
 

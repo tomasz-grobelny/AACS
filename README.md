@@ -24,12 +24,15 @@ Development tools used:
 * cmake
 * clang
 * Visual Studio Code, plugins:
+    * Remote-SSH
     * Clang-Format
     * CMake
     * CMake Tools
     * Native Debug
     * vscode-clangd
     * Prettier - Code formatter
+
+Client Visual Studio Code can run both Windows and Linux.
 
 # Design
 Android Auto Protocol is not documented. However, it has been reverse engineered and open source implementation exists (see https://github.com/opencardev/openauto). While this code does not use a single line from openauto, openauto is extremenly useful while developing and testing AAServer.
@@ -43,3 +46,6 @@ So what exactly could be displayed on headunit? Here are a few ideas:
 * any Android application, including any offline navigation, eg. using https://anbox.io/
 * video from camera using GStreamer's video4linux2 plugin
 * any graphical Linux application (using GStreamer's ximagesrc plugin)
+
+# Status
+Currently AAServer cannot do much. It can only switch switch to AOA (Android Open Accessory) mode and process one specific message (version request). Stay tuned.

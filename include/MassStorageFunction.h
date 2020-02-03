@@ -2,6 +2,7 @@
 
 #include "Function.h"
 #include <string>
+#pragma once
 
 class Gadget;
 

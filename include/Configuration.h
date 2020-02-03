@@ -2,6 +2,7 @@
 
 #include <usbg/usbg.h>
 #include <string>
+#pragma once
 
 class Gadget;
 class Function;

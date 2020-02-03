@@ -56,8 +56,8 @@ void ModeSwitcher::handleSwitchToAccessoryMode(const Library &lib) {
                            tmpMountpoint.c_str());
 
   Configuration configuration(initialGadget, "c0");
-  configuration.addFunction(ms_function, "loopback_initial");
-  configuration.addFunction(ffs_function, "massstorage_initial");
+  configuration.addFunction(ms_function, "massstorage_initial");
+  configuration.addFunction(ffs_function, "loopback_initial");
 
   auto fd = open((tmpMountpoint / "ep0").c_str(), O_RDWR);
   write_descriptors(fd, FUNCTIONFS_ALL_CTRL_RECIP);

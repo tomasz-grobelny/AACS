@@ -2,6 +2,7 @@
 
 #include <string>
 #include <usbg/usbg.h>
+#pragma once
 
 class Library {
   usbg_state *state = NULL;

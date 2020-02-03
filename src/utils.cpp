@@ -1,11 +1,11 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
+#include "utils.h"
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <usbg/usbg.h>
 #include <vector>
-#include <algorithm>
-#include "utils.h"
 
 using namespace std;
 
@@ -30,8 +30,12 @@ ssize_t checkError(ssize_t ret, const std::vector<int> &ignoredErrors) {
 }
 
 // input + run random
-string rr(const string& str) { return str; }
+string rr(const string &str) { return str; }
 
 // input + system random
-string sr(const string& str) { return str; }
+string sr(const string &str) { return str; }
 
+void pushBackInt16(std::vector<__u8> &vec, uint16_t num) {
+  vec.push_back((num >> 8) & 0xff);
+  vec.push_back((num >> 0) & 0xff);
+}

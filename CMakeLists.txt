@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost 1.67 REQUIRED COMPONENTS filesystem)
+find_package(Threads REQUIRED)
 pkg_check_modules (LIBUSBGX REQUIRED IMPORTED_TARGET libusbgx)
 
 include_directories(/opt/linux/include/uapi/linux/usb/)
@@ -19,9 +20,12 @@ add_executable(AAServer main.cpp
     src/Configuration.cpp
     src/Gadget.cpp
     src/Udc.cpp
+    src/Message.cpp
     src/ModeSwitcher.cpp
+    src/AaCommunicator.cpp
 )
 
+target_link_libraries(AAServer Threads::Threads)
 target_link_libraries(AAServer Boost::filesystem)
 target_link_libraries(AAServer PkgConfig::LIBUSBGX)
 include_directories(${LIBUSBGX_INCLUDE_DIRS})
