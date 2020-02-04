@@ -2,6 +2,7 @@
 
 #include "AaCommunicator.h"
 #include "Library.h"
+#include "ManualResetEvent.h"
 #include "ModeSwitcher.h"
 #include "Udc.h"
 #include <iostream>
@@ -12,11 +13,17 @@ string configFsBasePath = "/sys/kernel/config";
 
 int main() {
   try {
+    ManualResetEvent mre;
     Library lib(configFsBasePath);
     ModeSwitcher::handleSwitchToAccessoryMode(lib);
     AaCommunicator aac(lib);
     aac.setup(Udc::getUdcById(lib, 0));
-    aac.wait();
+    aac.error.connect([&](std::exception &ex) {
+      cout << "Exception:" << endl;
+      cout << ex.what() << endl;
+      mre.set();
+    });
+    mre.wait();
   } catch (exception &ex) {
     cout << "Exception:" << endl;
     cout << ex.what() << endl;

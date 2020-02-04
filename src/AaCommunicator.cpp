@@ -6,14 +6,11 @@
 #include "Udc.h"
 #include "descriptors.h"
 #include "utils.h"
-#include <asm-generic/errno-base.h>
 #include <boost/filesystem.hpp>
-#include <csignal>
 #include <fcntl.h>
 #include <functionfs.h>
 #include <iostream>
-#include <pthread.h>
-#include <signal.h>
+#include <boost/signals2.hpp>
 
 using namespace std;
 using namespace boost::filesystem;
@@ -209,20 +206,13 @@ void AaCommunicator::dataPump(ThreadDescriptor *t) {
 void AaCommunicator::threadTerminated(std::exception &ex) {
   std::unique_lock<std::mutex> lk(threadsMutex);
   threadFinished = true;
-  std::cout << ex.what() << std::endl;
-  threadsCd.notify_all();
-}
-
-void AaCommunicator::wait() {
-  std::unique_lock<std::mutex> lk(threadsMutex);
-  threadsCd.wait(lk, [this] { return threadFinished; });
+  error(ex);
 }
 
 AaCommunicator::~AaCommunicator() {
   std::unique_lock<std::mutex> lk(threadsMutex);
   threadFinished = true;
   lk.release();
-  threadsCd.notify_all();
 
   for (auto &&th : threads) {
     th.join();

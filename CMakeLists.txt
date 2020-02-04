@@ -23,6 +23,7 @@ add_executable(AAServer main.cpp
     src/Message.cpp
     src/ModeSwitcher.cpp
     src/AaCommunicator.cpp
+    src/ManualResetEvent.cpp
 )
 
 target_link_libraries(AAServer Threads::Threads)

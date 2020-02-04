@@ -3,6 +3,7 @@
 #include "Function.h"
 #include "Gadget.h"
 #include "Message.h"
+#include <boost/signals2.hpp>
 #include <condition_variable>
 #include <deque>
 #include <functional>
@@ -23,7 +24,6 @@ class AaCommunicator {
   std::condition_variable sendQueueNotEmpty;
 
   std::mutex threadsMutex;
-  std::condition_variable threadsCd;
   bool threadFinished = false;
   std::vector<std::thread> threads;
 
@@ -78,7 +78,7 @@ class AaCommunicator {
 public:
   AaCommunicator(const Library &_lib);
   void setup(const Udc &udc);
-  void wait();
+  boost::signals2::signal<void(std::exception& ex)> error;
 
   ~AaCommunicator();
 };
