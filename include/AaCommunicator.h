@@ -9,6 +9,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <openssl/ossl_typ.h>
 #include <thread>
 #include <vector>
 #pragma once
@@ -65,6 +66,7 @@ class AaCommunicator {
   void sendMessage(__u8 channel, __u8 flags, const std::vector<__u8> &buf);
   void sendVersionResponse(__u16 major, __u16 minor);
   void handleVersionRequest(const void *buf, size_t nbytes);
+  void handleSslHandshake(const void *buf, size_t nbytes);
   void handleMessageContent(const Message &message);
   ssize_t handleMessage(int fd, const void *buf, size_t nbytes);
   ssize_t getMessage(int fd, void *buf, size_t nbytes);
@@ -75,10 +77,19 @@ class AaCommunicator {
   void startThread(int fd, std::function<ssize_t(int, void *, size_t)> readFun,
                    std::function<ssize_t(int, const void *, size_t)> writeFun);
 
+  // SSL related
+  void initializeSsl();
+  void initializeSslContext();
+  static int verifyCertificate(int preverify_ok, X509_STORE_CTX *x509_ctx);
+  SSL_CTX *ctx = nullptr;
+  SSL *ssl = nullptr;
+  BIO *readBio = nullptr;
+  BIO *writeBio = nullptr;
+
 public:
   AaCommunicator(const Library &_lib);
   void setup(const Udc &udc);
-  boost::signals2::signal<void(std::exception& ex)> error;
+  boost::signals2::signal<void(std::exception &ex)> error;
 
   ~AaCommunicator();
 };

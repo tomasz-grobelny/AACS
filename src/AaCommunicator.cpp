@@ -7,22 +7,31 @@
 #include "descriptors.h"
 #include "utils.h"
 #include <boost/filesystem.hpp>
+#include <boost/signals2.hpp>
 #include <fcntl.h>
 #include <functionfs.h>
 #include <iostream>
-#include <boost/signals2.hpp>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#include <stdexcept>
+
+#define CRT_FILE "self_sign.crt"
+#define PRIVKEY_FILE "self_sign.key"
+#define DHPARAM_FILE "dhparam.pem"
 
 using namespace std;
 using namespace boost::filesystem;
 
 void AaCommunicator::sendMessage(__u8 channel, __u8 flags,
                                  const std::vector<__u8> &buf) {
-  std::unique_lock<std::mutex> lk(sendQueueMutex);
   Message msg;
   msg.channel = channel;
   msg.flags = flags;
   msg.content = buf;
-  sendQueue.push_back(msg);
+  {
+    std::unique_lock<std::mutex> lk(sendQueueMutex);
+    sendQueue.push_back(msg);
+  }
   sendQueueNotEmpty.notify_all();
 }
 
@@ -52,9 +61,86 @@ void AaCommunicator::handleMessageContent(const Message &message) {
   MessageType messageType = (MessageType)be16_to_cpu(shortView[0]);
   if (messageType == MessageType::VersionRequest) {
     handleVersionRequest(shortView + 1, msg.size() - sizeof(__u16));
+  } else if (messageType == MessageType::SslHandshake) {
+    handleSslHandshake(shortView + 1, msg.size() - sizeof(__u16));
   } else {
-    throw std::runtime_error("unhandled message type");
+    throw std::runtime_error("Unhandled message type: " +
+                             std::to_string(messageType));
   }
+}
+
+void AaCommunicator::handleSslHandshake(const void *buf, size_t nbytes) {
+  initializeSsl();
+  BIO_write(readBio, buf, nbytes);
+
+  auto ret = SSL_accept(ssl);
+  if (ret == -1) {
+    auto error = SSL_get_error(ssl, ret);
+    if (error != SSL_ERROR_WANT_READ)
+      throw runtime_error("SSL_accept failed");
+  }
+
+  std::vector<__u8> msg;
+  pushBackInt16(msg, MessageType::SslHandshake);
+  auto bufferSize = 512;
+  char buffer[bufferSize];
+  int len;
+  while ((len = BIO_read(writeBio, buffer, bufferSize)) != -1) {
+    std::copy(buffer, buffer + len, std::back_inserter(msg));
+  }
+  sendMessage(0, EncryptionType::Plain | FrameType::Bulk, msg);
+}
+
+void AaCommunicator::initializeSsl() {
+  if (ssl)
+    return;
+  ssl = SSL_new(ctx);
+  readBio = BIO_new(BIO_s_mem());
+  writeBio = BIO_new(BIO_s_mem());
+  SSL_set_accept_state(ssl);
+  SSL_set_bio(ssl, readBio, writeBio);
+}
+
+void AaCommunicator::initializeSslContext() {
+  SSL_load_error_strings();
+  OpenSSL_add_ssl_algorithms();
+  const SSL_METHOD *method = SSLv23_server_method();
+
+  ctx = SSL_CTX_new(method);
+  if (!ctx) {
+    throw std::runtime_error("Error while creating SSL context");
+  }
+
+  SSL_CTX_set_ecdh_auto(ctx, 1);
+  if (SSL_CTX_use_certificate_file(ctx, CRT_FILE, SSL_FILETYPE_PEM) <= 0) {
+    throw std::runtime_error("Error on SSL_CTX_use_certificate_file");
+  }
+
+  if (SSL_CTX_use_PrivateKey_file(ctx, PRIVKEY_FILE, SSL_FILETYPE_PEM) <= 0) {
+    throw std::runtime_error("Error on SSL_CTX_use_PrivateKey_file");
+  }
+
+  DH *dh_2048 = NULL;
+  FILE *paramfile = fopen(DHPARAM_FILE, "r");
+  if (paramfile) {
+    dh_2048 = PEM_read_DHparams(paramfile, NULL, NULL, NULL);
+    fclose(paramfile);
+  } else {
+    throw std::runtime_error("Cannot read DH parameters file");
+  }
+  if (dh_2048 == NULL) {
+    throw std::runtime_error("Reading DH parameters failed");
+  }
+  if (SSL_CTX_set_tmp_dh(ctx, dh_2048) != 1) {
+    throw std::runtime_error("SSL_CTX_set_tmp_dh failed");
+  }
+  SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, &AaCommunicator::verifyCertificate);
+  SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1_3);
+}
+
+int AaCommunicator::verifyCertificate(int preverify_ok,
+                                      X509_STORE_CTX *x509_ctx) {
+  return 1;
 }
 
 ssize_t AaCommunicator::handleMessage(int fd, const void *buf, size_t nbytes) {
@@ -89,16 +175,18 @@ ssize_t AaCommunicator::getMessage(int fd, void *buf, size_t nbytes) {
   auto msg = sendQueue.front();
   uint32_t totalLength = msg.content.size();
   std::vector<__u8> msgBytes;
-
-  sendQueue.pop_front();
-  msgBytes.push_back(msg.channel);
-  msgBytes.push_back(msg.flags);
-  int length = msg.content.size();
-  pushBackInt16(msgBytes, length);
-  std::copy(msg.content.begin(), msg.content.end(),
-            std::back_inserter(msgBytes));
-  std::copy(msgBytes.begin(), msgBytes.end(), (__u8 *)buf);
-
+  if (msg.flags & EncryptionType::Encrypted) {
+    throw runtime_error("Encrypted messaged not yet supported");
+  } else {
+    sendQueue.pop_front();
+    msgBytes.push_back(msg.channel);
+    msgBytes.push_back(msg.flags);
+    int length = msg.content.size();
+    pushBackInt16(msgBytes, length);
+    std::copy(msg.content.begin(), msg.content.end(),
+              std::back_inserter(msgBytes));
+    std::copy(msgBytes.begin(), msgBytes.end(), (__u8 *)buf);
+  }
   return msgBytes.size();
 }
 
@@ -111,7 +199,9 @@ ssize_t AaCommunicator::handleEp0Message(int fd, const void *buf,
   return nbytes;
 }
 
-AaCommunicator::AaCommunicator(const Library &_lib) : lib(_lib) {}
+AaCommunicator::AaCommunicator(const Library &_lib) : lib(_lib) {
+  initializeSslContext();
+}
 
 void AaCommunicator::setup(const Udc &udc) {
   mainGadget =
@@ -185,7 +275,7 @@ void AaCommunicator::dataPump(ThreadDescriptor *t) {
         return;
       }
       auto start = 0;
-      while (length) {
+      while (length > 0) {
         auto partLength =
             checkError(t->writeFun(t->fd, (char *)buffer + start, length),
                        {EINTR, EAGAIN});
