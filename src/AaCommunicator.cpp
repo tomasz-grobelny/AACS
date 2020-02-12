@@ -3,6 +3,8 @@
 #include "AaCommunicator.h"
 #include "Configuration.h"
 #include "FfsFunction.h"
+#include "ServiceDiscoveryRequest.pb.h"
+#include "ServiceDiscoveryResponse.pb.h"
 #include "Udc.h"
 #include "descriptors.h"
 #include "utils.h"
@@ -21,6 +23,7 @@
 
 using namespace std;
 using namespace boost::filesystem;
+using namespace tag::aas;
 
 void AaCommunicator::sendMessage(__u8 channel, __u8 flags,
                                  const std::vector<__u8> &buf) {
@@ -55,14 +58,58 @@ void AaCommunicator::handleVersionRequest(const void *buf, size_t nbytes) {
     throw std::runtime_error("unsupported version");
 }
 
+void AaCommunicator::sendServiceDiscoveryRequest() {
+  class ServiceDiscoveryRequest sdr;
+  sdr.set_manufacturer("TAG");
+  sdr.set_model("AAServer");
+  auto msgString = sdr.SerializeAsString();
+  std::vector<__u8> plainMsg;
+  pushBackInt16(plainMsg, MessageType::ServiceDiscoveryRequest);
+  std::copy(msgString.begin(), msgString.end(), std::back_inserter(plainMsg));
+  sendMessage(0, EncryptionType::Encrypted | FrameType::Bulk, plainMsg);
+}
+
+void AaCommunicator::handleServiceDiscoveryResponse(const void *buf,
+                                                    size_t nbytes) {
+  class tag::aas::ServiceDiscoveryResponse sdr;
+  sdr.ParseFromArray(buf, nbytes);
+  std::cout << sdr.DebugString() << std::endl;
+  throw std::runtime_error("Now should open channel");
+}
+
+std::vector<__u8>
+AaCommunicator::decryptMessage(const std::vector<__u8> &encryptedMsg) {
+  ERR_clear_error();
+
+  auto ret = BIO_write(readBio, encryptedMsg.data(), encryptedMsg.size());
+  if (ret < 0) {
+    throw std::runtime_error("BIO_write failed");
+  }
+  char plainBuf[20000];
+  ret = SSL_read(ssl, plainBuf, 20000);
+  if (ret < 0) {
+    auto err = SSL_get_error(ssl, ret);
+    auto message = "SSL_read failed: " + std::to_string(ret);
+    message += " " + std::to_string(err);
+    if (err == SSL_ERROR_SSL)
+      message += " "s + ERR_error_string(ERR_get_error(), NULL);
+    throw std::runtime_error(message);
+  }
+  return std::vector<__u8>(plainBuf, plainBuf + ret);
+}
+
 void AaCommunicator::handleMessageContent(const Message &message) {
   auto msg = message.content;
-  const __u16 *shortView = (const __u16 *)(&msg[0]);
+  const __u16 *shortView = (const __u16 *)msg.data();
   MessageType messageType = (MessageType)be16_to_cpu(shortView[0]);
   if (messageType == MessageType::VersionRequest) {
     handleVersionRequest(shortView + 1, msg.size() - sizeof(__u16));
   } else if (messageType == MessageType::SslHandshake) {
     handleSslHandshake(shortView + 1, msg.size() - sizeof(__u16));
+  } else if (messageType == MessageType::AuthComplete) {
+    sendServiceDiscoveryRequest();
+  } else if (messageType == MessageType::ServiceDiscoveryResponse) {
+    handleServiceDiscoveryResponse(shortView + 1, msg.size() - sizeof(__u16));
   } else {
     throw std::runtime_error("Unhandled message type: " +
                              std::to_string(messageType));
@@ -158,7 +205,7 @@ ssize_t AaCommunicator::handleMessage(int fd, const void *buf, size_t nbytes) {
   Message message;
   message.channel = channel;
   message.flags = flags;
-  message.content = msg;
+  message.content = encrypted ? decryptMessage(msg) : msg;
   handleMessageContent(message);
   return length + 4;
 }
@@ -170,13 +217,74 @@ ssize_t AaCommunicator::getMessage(int fd, void *buf, size_t nbytes) {
     return 0;
   }
 
+  // it should work up to about 16k, but we might get some weird hardware issues
   int maxSize = 2000;
 
   auto msg = sendQueue.front();
   uint32_t totalLength = msg.content.size();
   std::vector<__u8> msgBytes;
   if (msg.flags & EncryptionType::Encrypted) {
-    throw runtime_error("Encrypted messaged not yet supported");
+    msgBytes.push_back(msg.channel);
+    auto flags = msg.flags;
+    std::vector<__u8>::iterator contentBegin;
+    std::vector<__u8>::iterator contentEnd;
+    // full frame
+    if (msg.content.size() - msg.offset <= maxSize &&
+        (flags & FrameType::Bulk)) {
+      contentBegin = msg.content.begin() + msg.offset;
+      contentEnd = msg.content.end();
+      sendQueue.pop_front();
+    }
+    // first frame
+    else if (msg.content.size() - msg.offset > maxSize &&
+             (flags & FrameType::Bulk)) {
+      flags = flags & ~FrameType::Bulk;
+      flags = flags | FrameType::First;
+      contentBegin = msg.content.begin() + msg.offset;
+      contentEnd = msg.content.begin() + msg.offset + maxSize;
+      sendQueue.front().flags = flags & ~FrameType::Bulk;
+      sendQueue.front().offset += maxSize;
+    }
+    // intermediate frame
+    else if (msg.content.size() - msg.offset > maxSize) {
+      contentBegin = msg.content.begin() + msg.offset;
+      contentEnd = msg.content.begin() + msg.offset + maxSize;
+      sendQueue.front().flags = flags & ~FrameType::Bulk;
+      sendQueue.front().offset += maxSize;
+    }
+    // last frame
+    else {
+      contentBegin = msg.content.begin() + msg.offset;
+      contentEnd = msg.content.end();
+      flags = flags | FrameType::Last;
+      sendQueue.pop_front();
+    }
+    msgBytes.push_back(flags);
+    auto ret = SSL_write(ssl, contentBegin.base(), contentEnd - contentBegin);
+    if (ret < 0) {
+      throw std::runtime_error("SSL_write error");
+    }
+    lk.unlock();
+    auto encBuf = (__u8 *)buf;
+    auto offset = 4;
+    if ((flags & FrameType::Bulk) == FrameType::First) {
+      offset += 4;
+    }
+    auto length = BIO_read(writeBio, encBuf + offset, 20000);
+    if (length < 0) {
+      throw std::runtime_error("BIO_read error");
+    }
+    encBuf[0] = msg.channel;
+    encBuf[1] = flags;
+    encBuf[2] = (length >> 8);
+    encBuf[3] = (length & 0xff);
+    if ((flags & FrameType::Bulk) == FrameType::First) {
+      encBuf[4] = ((totalLength >> 24) & 0xff);
+      encBuf[5] = ((totalLength >> 16) & 0xff);
+      encBuf[6] = ((totalLength >> 8) & 0xff);
+      encBuf[7] = ((totalLength >> 0) & 0xff);
+    }
+    return length + offset;
   } else {
     sendQueue.pop_front();
     msgBytes.push_back(msg.channel);
@@ -186,8 +294,8 @@ ssize_t AaCommunicator::getMessage(int fd, void *buf, size_t nbytes) {
     std::copy(msg.content.begin(), msg.content.end(),
               std::back_inserter(msgBytes));
     std::copy(msgBytes.begin(), msgBytes.end(), (__u8 *)buf);
+    return msgBytes.size();
   }
-  return msgBytes.size();
 }
 
 ssize_t AaCommunicator::handleEp0Message(int fd, const void *buf,

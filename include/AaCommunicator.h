@@ -67,8 +67,11 @@ class AaCommunicator {
   void sendVersionResponse(__u16 major, __u16 minor);
   void handleVersionRequest(const void *buf, size_t nbytes);
   void handleSslHandshake(const void *buf, size_t nbytes);
+  void sendServiceDiscoveryRequest();
+  void handleServiceDiscoveryResponse(const void *buf, size_t nbytes);
   void handleMessageContent(const Message &message);
   ssize_t handleMessage(int fd, const void *buf, size_t nbytes);
+  std::vector<__u8> decryptMessage(const std::vector<__u8> &encryptedMsg);
   ssize_t getMessage(int fd, void *buf, size_t nbytes);
   ssize_t handleEp0Message(int fd, const void *buf, size_t nbytes);
   void threadTerminated(std::exception &ex);
