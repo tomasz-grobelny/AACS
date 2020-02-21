@@ -4,9 +4,12 @@ syntax="proto2";
 
 package tag.aas;
 
-import "Channel.proto";
-
-message ServiceDiscoveryResponse
+message MediaStreamType
 {
-    repeated Channel channels = 1;
+    enum Enum
+    {
+        None = 0;
+        Audio = 1;
+        Video = 3;
+    }
 }

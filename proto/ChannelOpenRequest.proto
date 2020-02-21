@@ -4,9 +4,8 @@ syntax="proto2";
 
 package tag.aas;
 
-import "Channel.proto";
-
-message ServiceDiscoveryResponse
+message ChannelOpenRequest
 {
-    repeated Channel channels = 1;
+    required int32 unknown_field = 1;
+    required int32 channel_id = 2;
 }

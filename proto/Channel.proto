@@ -1,0 +1,13 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+import "MediaChannel.proto";
+
+message Channel
+{
+    required uint32 channel_id = 1;
+    optional MediaChannel media_channel = 3;
+}

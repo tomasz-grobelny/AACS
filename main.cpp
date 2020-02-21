@@ -4,6 +4,7 @@
 #include "Library.h"
 #include "ManualResetEvent.h"
 #include "ModeSwitcher.h"
+#include "SocketCommunicator.h"
 #include "Udc.h"
 #include <iostream>
 
@@ -18,13 +19,26 @@ int main() {
     ModeSwitcher::handleSwitchToAccessoryMode(lib);
     AaCommunicator aac(lib);
     aac.setup(Udc::getUdcById(lib, 0));
-    aac.error.connect([&](std::exception &ex) {
-      cout << "Exception:" << endl;
+    aac.error.connect([&](const std::exception &ex) {
+      cout << "Error:" << endl;
       cout << ex.what() << endl;
       mre.set();
     });
+    SocketCommunicator sc("./socket");
+    sc.newClient.connect([&](SocketClient *scl) {
+      cout << "openChannel" << endl;
+      aac.openChannel(ChannelType::Video);
+      scl->gotPacket.connect([&aac](const Packet &p) {
+        cout << "sendToChannel" << endl;
+        aac.sendToChannel(ChannelType::Video, p.data);
+      });
+      scl->disconnected.connect([&aac]() {
+        cout << "closeChannel" << endl;
+        aac.closeChannel(ChannelType::Video);
+      });
+    });
     mre.wait();
-  } catch (exception &ex) {
+  } catch (const exception &ex) {
     cout << "Exception:" << endl;
     cout << ex.what() << endl;
     return 1;

@@ -14,6 +14,10 @@ include_directories(/opt/linux/include/uapi/linux/usb/)
 include_directories(include)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS 
+    proto/MediaStreamType.proto
+    proto/MediaChannel.proto
+    proto/Channel.proto
+    proto/ChannelOpenRequest.proto
     proto/ServiceDiscoveryRequest.proto
     proto/ServiceDiscoveryResponse.proto
 )
@@ -31,6 +35,8 @@ add_executable(AAServer main.cpp
     src/Message.cpp
     src/ModeSwitcher.cpp
     src/AaCommunicator.cpp
+    src/SocketClient.cpp
+    src/SocketCommunicator.cpp
     src/ManualResetEvent.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}

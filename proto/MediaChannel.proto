@@ -4,9 +4,9 @@ syntax="proto2";
 
 package tag.aas;
 
-import "Channel.proto";
+import "MediaStreamType.proto";
 
-message ServiceDiscoveryResponse
+message MediaChannel
 {
-    repeated Channel channels = 1;
+    required MediaStreamType.Enum media_type = 1;
 }

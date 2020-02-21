@@ -14,6 +14,8 @@
 #include <vector>
 #pragma once
 
+enum ChannelType { Video, MaxValue };
+
 class AaCommunicator {
   const Library &lib;
   std::unique_ptr<Gadget> mainGadget;
@@ -55,11 +57,21 @@ class AaCommunicator {
     ChannelOpenResponse = 8,
   };
 
+  enum MediaMessageType {
+    MediaWithTimestampIndication = 0x0000,
+    MediaIndication = 0x0001,
+    SetupRequest = 0x8000,
+    StartIndication = 0x8001,
+    SetupResponse = 0x8003,
+    MediaAckIndication = 0x8004,
+    VideoFocusIndication = 0x8008,
+  };
+
   struct ThreadDescriptor {
     int fd;
     std::function<ssize_t(int, void *, size_t)> readFun;
     std::function<ssize_t(int, const void *, size_t)> writeFun;
-    std::function<void(std::exception &ex)> endFun;
+    std::function<void(const std::exception &ex)> endFun;
     std::function<bool()> checkTerminate;
   };
 
@@ -74,7 +86,7 @@ class AaCommunicator {
   std::vector<__u8> decryptMessage(const std::vector<__u8> &encryptedMsg);
   ssize_t getMessage(int fd, void *buf, size_t nbytes);
   ssize_t handleEp0Message(int fd, const void *buf, size_t nbytes);
-  void threadTerminated(std::exception &ex);
+  void threadTerminated(const std::exception &ex);
   static ssize_t readWraper(int fd, void *buf, size_t nbytes);
   static void dataPump(ThreadDescriptor *threadDescriptor);
   void startThread(int fd, std::function<ssize_t(int, void *, size_t)> readFun,
@@ -89,10 +101,26 @@ class AaCommunicator {
   BIO *readBio = nullptr;
   BIO *writeBio = nullptr;
 
+  int channelTypeToChannelNumber[ChannelType::MaxValue];
+  void handleChannelMessage(const Message &message);
+
+  std::map<int, bool> gotChannelOpenResponse;
+  std::map<int, bool> gotSetupResponse;
+  void sendChannelOpenRequest(int channelId);
+  void expectChannelOpenResponse(int channelId);
+  void sendSetupRequest(int channelId);
+  void expectSetupResponse(int channelId);
+  void sendStartIndication(int channelId);
+  std::mutex m;
+  std::condition_variable cv;
+
 public:
   AaCommunicator(const Library &_lib);
   void setup(const Udc &udc);
-  boost::signals2::signal<void(std::exception &ex)> error;
+  boost::signals2::signal<void(const std::exception &ex)> error;
+  void openChannel(ChannelType ct);
+  void sendToChannel(ChannelType ct, const std::vector<std::byte> &data);
+  void closeChannel(ChannelType ct);
 
   ~AaCommunicator();
 };

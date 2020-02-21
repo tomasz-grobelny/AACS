@@ -1,8 +1,11 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
 #include "AaCommunicator.h"
+#include "Channel.pb.h"
+#include "ChannelOpenRequest.pb.h"
 #include "Configuration.h"
 #include "FfsFunction.h"
+#include "MediaStreamType.pb.h"
 #include "ServiceDiscoveryRequest.pb.h"
 #include "ServiceDiscoveryResponse.pb.h"
 #include "Udc.h"
@@ -74,8 +77,93 @@ void AaCommunicator::handleServiceDiscoveryResponse(const void *buf,
   class tag::aas::ServiceDiscoveryResponse sdr;
   sdr.ParseFromArray(buf, nbytes);
   std::cout << sdr.DebugString() << std::endl;
-  throw std::runtime_error("Now should open channel");
+  for (auto ch : sdr.channels()) {
+    if (ch.has_media_channel() &&
+        ch.media_channel().media_type() ==
+            MediaStreamType_Enum::MediaStreamType_Enum_Video) {
+      channelTypeToChannelNumber[ChannelType::Video] = ch.channel_id();
+    }
+  }
 }
+
+void AaCommunicator::sendChannelOpenRequest(int channelId) {
+  class ChannelOpenRequest cor;
+  cor.set_channel_id(channelId);
+  cor.set_unknown_field(0);
+  const auto &msgString = cor.SerializeAsString();
+  std::vector<__u8> plainMsg;
+  pushBackInt16(plainMsg, MessageType::ChannelOpenRequest);
+  std::copy(msgString.begin(), msgString.end(), std::back_inserter(plainMsg));
+  sendMessage(channelId,
+              FrameType::Bulk | EncryptionType::Encrypted |
+                  MessageTypeFlags::Specific,
+              plainMsg);
+}
+
+void AaCommunicator::expectChannelOpenResponse(int channelId) {
+  std::unique_lock<std::mutex> lk(m);
+  cv.wait(lk, [=] { return gotChannelOpenResponse[channelId]; });
+}
+
+void AaCommunicator::sendSetupRequest(int channelId) {
+  std::vector<__u8> plainMsg;
+  pushBackInt16(plainMsg, MediaMessageType::SetupRequest);
+  plainMsg.push_back(0x08);
+  plainMsg.push_back(0x03);
+  sendMessage(channelId, FrameType::Bulk | EncryptionType::Encrypted, plainMsg);
+}
+
+void AaCommunicator::expectSetupResponse(int channelId) {
+  std::unique_lock<std::mutex> lk(m);
+  cv.wait(lk, [=] { return gotSetupResponse[channelId]; });
+}
+
+void AaCommunicator::sendStartIndication(int channelId) {
+  std::vector<__u8> plainMsg;
+  pushBackInt16(plainMsg, MediaMessageType::StartIndication);
+  plainMsg.push_back(0x08);
+  plainMsg.push_back(0x00);
+  plainMsg.push_back(0x10);
+  plainMsg.push_back(0x00);
+  sendMessage(channelId, FrameType::Bulk | EncryptionType::Encrypted, plainMsg);
+}
+
+void AaCommunicator::openChannel(ChannelType ct) {
+  int channelId = channelTypeToChannelNumber[ct];
+  if (channelId < 0) {
+    throw runtime_error("Invalid channelId");
+  }
+  gotChannelOpenResponse[channelId] = false;
+  gotSetupResponse[channelId] = false;
+  sendChannelOpenRequest(channelId);
+  expectChannelOpenResponse(channelId);
+  sendSetupRequest(channelId);
+  expectSetupResponse(channelId);
+  sendStartIndication(channelId);
+  std::cout << "ready to send data" << std::endl;
+}
+
+void AaCommunicator::handleChannelMessage(const Message &message) {
+  auto msg = message.content;
+  const __u16 *shortView = (const __u16 *)(msg.data());
+  auto messageType = be16_to_cpu(shortView[0]);
+  {
+    std::unique_lock<std::mutex> lk(m);
+    if (messageType == MessageType::ChannelOpenResponse) {
+      gotChannelOpenResponse[message.channel] = true;
+    } else if (messageType == MediaMessageType::SetupResponse) {
+      gotSetupResponse[message.channel] = true;
+    } else if (messageType == MediaMessageType::VideoFocusIndication) {
+    } else if (messageType == MediaMessageType::MediaAckIndication) {
+    } else {
+      throw std::runtime_error("Unknown packet");
+    }
+  }
+  cv.notify_all();
+}
+
+void AaCommunicator::sendToChannel(ChannelType ct, const vector<byte> &data) {}
+void AaCommunicator::closeChannel(ChannelType ct) {}
 
 std::vector<__u8>
 AaCommunicator::decryptMessage(const std::vector<__u8> &encryptedMsg) {
@@ -102,7 +190,9 @@ void AaCommunicator::handleMessageContent(const Message &message) {
   auto msg = message.content;
   const __u16 *shortView = (const __u16 *)msg.data();
   MessageType messageType = (MessageType)be16_to_cpu(shortView[0]);
-  if (messageType == MessageType::VersionRequest) {
+  if (message.channel != 0) {
+    handleChannelMessage(message);
+  } else if (messageType == MessageType::VersionRequest) {
     handleVersionRequest(shortView + 1, msg.size() - sizeof(__u16));
   } else if (messageType == MessageType::SslHandshake) {
     handleSslHandshake(shortView + 1, msg.size() - sizeof(__u16));
@@ -309,6 +399,7 @@ ssize_t AaCommunicator::handleEp0Message(int fd, const void *buf,
 
 AaCommunicator::AaCommunicator(const Library &_lib) : lib(_lib) {
   initializeSslContext();
+  fill_n(channelTypeToChannelNumber, ChannelType::MaxValue, -1);
 }
 
 void AaCommunicator::setup(const Udc &udc) {
@@ -366,7 +457,7 @@ void AaCommunicator::startThread(
   td->fd = fd;
   td->readFun = readFun;
   td->writeFun = writeFun;
-  td->endFun = [this](std::exception &ex) { threadTerminated(ex); };
+  td->endFun = [this](const std::exception &ex) { threadTerminated(ex); };
   td->checkTerminate = [this]() { return threadFinished; };
   threads.push_back(std::thread(&AaCommunicator::dataPump, td));
 }
@@ -393,7 +484,7 @@ void AaCommunicator::dataPump(ThreadDescriptor *t) {
         length -= partLength;
         start += partLength;
       }
-    } catch (std::exception &ex) {
+    } catch (const std::exception &ex) {
       t->endFun(ex);
       break;
     }
@@ -401,16 +492,20 @@ void AaCommunicator::dataPump(ThreadDescriptor *t) {
   return;
 }
 
-void AaCommunicator::threadTerminated(std::exception &ex) {
-  std::unique_lock<std::mutex> lk(threadsMutex);
-  threadFinished = true;
+void AaCommunicator::threadTerminated(const std::exception &ex) {
+  {
+    std::unique_lock<std::mutex> lk(m);
+    threadFinished = true;
+  }
+  cv.notify_all();
   error(ex);
 }
 
 AaCommunicator::~AaCommunicator() {
-  std::unique_lock<std::mutex> lk(threadsMutex);
-  threadFinished = true;
-  lk.release();
+  {
+    std::unique_lock<std::mutex> lk(m);
+    threadFinished = true;
+  }
 
   for (auto &&th : threads) {
     th.join();
