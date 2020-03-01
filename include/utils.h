@@ -17,4 +17,4 @@ void checkUsbgError(int returnValue);
 std::string rr(const std::string &str);
 std::string sr(const std::string &str);
 ssize_t checkError(ssize_t ret, const std::vector<int> &ignoredErrors);
-void pushBackInt16(std::vector<__u8> &vec, uint16_t num);
+void pushBackInt16(std::vector<uint8_t> &vec, uint16_t num);

@@ -67,7 +67,7 @@ void ModeSwitcher::handleSwitchToAccessoryMode(const Library &lib) {
 
   auto eSize = sizeof(struct usb_functionfs_event);
   auto bufSize = 4 * eSize;
-  __u8 buffer[bufSize];
+  uint8_t buffer[bufSize];
   for (;;) {
     auto length = checkError(read(fd, buffer, bufSize), {EINTR, EAGAIN});
     if (length == 0)

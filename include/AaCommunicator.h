@@ -74,7 +74,7 @@ class AaCommunicator {
     std::function<bool()> checkTerminate;
   };
 
-  void sendMessage(__u8 channel, __u8 flags, const std::vector<__u8> &buf);
+  void sendMessage(uint8_t channel, uint8_t flags, const std::vector<uint8_t> &buf);
   void sendVersionResponse(__u16 major, __u16 minor);
   void handleVersionRequest(const void *buf, size_t nbytes);
   void handleSslHandshake(const void *buf, size_t nbytes);
@@ -82,7 +82,7 @@ class AaCommunicator {
   void handleServiceDiscoveryResponse(const void *buf, size_t nbytes);
   void handleMessageContent(const Message &message);
   ssize_t handleMessage(int fd, const void *buf, size_t nbytes);
-  std::vector<__u8> decryptMessage(const std::vector<__u8> &encryptedMsg);
+  std::vector<uint8_t> decryptMessage(const std::vector<uint8_t> &encryptedMsg);
   ssize_t getMessage(int fd, void *buf, size_t nbytes);
   ssize_t handleEp0Message(int fd, const void *buf, size_t nbytes);
   void threadTerminated(const std::exception &ex);

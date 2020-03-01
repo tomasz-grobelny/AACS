@@ -28,8 +28,8 @@ using namespace std;
 using namespace boost::filesystem;
 using namespace tag::aas;
 
-void AaCommunicator::sendMessage(__u8 channel, __u8 flags,
-                                 const std::vector<__u8> &buf) {
+void AaCommunicator::sendMessage(uint8_t channel, uint8_t flags,
+                                 const std::vector<uint8_t> &buf) {
   Message msg;
   msg.channel = channel;
   msg.flags = flags;
@@ -42,7 +42,7 @@ void AaCommunicator::sendMessage(__u8 channel, __u8 flags,
 }
 
 void AaCommunicator::sendVersionResponse(__u16 major, __u16 minor) {
-  std::vector<__u8> msg;
+  std::vector<uint8_t> msg;
   pushBackInt16(msg, MessageType::VersionResponse);
   pushBackInt16(msg, major);
   pushBackInt16(msg, minor);
@@ -66,7 +66,7 @@ void AaCommunicator::sendServiceDiscoveryRequest() {
   sdr.set_manufacturer("TAG");
   sdr.set_model("AAServer");
   auto msgString = sdr.SerializeAsString();
-  std::vector<__u8> plainMsg;
+  std::vector<uint8_t> plainMsg;
   pushBackInt16(plainMsg, MessageType::ServiceDiscoveryRequest);
   std::copy(msgString.begin(), msgString.end(), std::back_inserter(plainMsg));
   sendMessage(0, EncryptionType::Encrypted | FrameType::Bulk, plainMsg);
@@ -91,7 +91,7 @@ void AaCommunicator::sendChannelOpenRequest(int channelId) {
   cor.set_channel_id(channelId);
   cor.set_unknown_field(0);
   const auto &msgString = cor.SerializeAsString();
-  std::vector<__u8> plainMsg;
+  std::vector<uint8_t> plainMsg;
   pushBackInt16(plainMsg, MessageType::ChannelOpenRequest);
   std::copy(msgString.begin(), msgString.end(), std::back_inserter(plainMsg));
   sendMessage(channelId,
@@ -106,7 +106,7 @@ void AaCommunicator::expectChannelOpenResponse(int channelId) {
 }
 
 void AaCommunicator::sendSetupRequest(int channelId) {
-  std::vector<__u8> plainMsg;
+  std::vector<uint8_t> plainMsg;
   pushBackInt16(plainMsg, MediaMessageType::SetupRequest);
   plainMsg.push_back(0x08);
   plainMsg.push_back(0x03);
@@ -119,7 +119,7 @@ void AaCommunicator::expectSetupResponse(int channelId) {
 }
 
 void AaCommunicator::sendStartIndication(int channelId) {
-  std::vector<__u8> plainMsg;
+  std::vector<uint8_t> plainMsg;
   pushBackInt16(plainMsg, MediaMessageType::StartIndication);
   plainMsg.push_back(0x08);
   plainMsg.push_back(0x00);
@@ -169,8 +169,8 @@ void AaCommunicator::sendToChannel(ChannelType ct, const vector<uint8_t> &data) 
 
 void AaCommunicator::closeChannel(ChannelType ct) {}
 
-std::vector<__u8>
-AaCommunicator::decryptMessage(const std::vector<__u8> &encryptedMsg) {
+std::vector<uint8_t>
+AaCommunicator::decryptMessage(const std::vector<uint8_t> &encryptedMsg) {
   ERR_clear_error();
 
   auto ret = BIO_write(readBio, encryptedMsg.data(), encryptedMsg.size());
@@ -187,7 +187,7 @@ AaCommunicator::decryptMessage(const std::vector<__u8> &encryptedMsg) {
       message += " "s + ERR_error_string(ERR_get_error(), NULL);
     throw std::runtime_error(message);
   }
-  return std::vector<__u8>(plainBuf, plainBuf + ret);
+  return std::vector<uint8_t>(plainBuf, plainBuf + ret);
 }
 
 void AaCommunicator::handleMessageContent(const Message &message) {
@@ -221,7 +221,7 @@ void AaCommunicator::handleSslHandshake(const void *buf, size_t nbytes) {
       throw runtime_error("SSL_accept failed");
   }
 
-  std::vector<__u8> msg;
+  std::vector<uint8_t> msg;
   pushBackInt16(msg, MessageType::SslHandshake);
   auto bufferSize = 512;
   char buffer[bufferSize];
@@ -285,14 +285,14 @@ int AaCommunicator::verifyCertificate(int preverify_ok,
 }
 
 ssize_t AaCommunicator::handleMessage(int fd, const void *buf, size_t nbytes) {
-  const __u8 *byteView = (const __u8 *)buf;
+  const uint8_t *byteView = (const uint8_t *)buf;
   int channel = byteView[0];
   int flags = byteView[1];
   bool encrypted = flags & 0x8;
   FrameType frameType = (FrameType)(flags & 0x3);
   int lengthRaw = *(__u16 *)(byteView + 2);
   int length = be16_to_cpu(*(__u16 *)(byteView + 2));
-  std::vector<__u8> msg;
+  std::vector<uint8_t> msg;
   if (nbytes < 4 + length)
     throw std::runtime_error("nbytes<4+length");
   std::copy(byteView + 4, byteView + 4 + length, std::back_inserter(msg));
@@ -316,12 +316,12 @@ ssize_t AaCommunicator::getMessage(int fd, void *buf, size_t nbytes) {
 
   auto msg = sendQueue.front();
   uint32_t totalLength = msg.content.size();
-  std::vector<__u8> msgBytes;
+  std::vector<uint8_t> msgBytes;
   if (msg.flags & EncryptionType::Encrypted) {
     msgBytes.push_back(msg.channel);
     auto flags = msg.flags;
-    std::vector<__u8>::iterator contentBegin;
-    std::vector<__u8>::iterator contentEnd;
+    std::vector<uint8_t>::iterator contentBegin;
+    std::vector<uint8_t>::iterator contentEnd;
     // full frame
     if (msg.content.size() - msg.offset <= maxSize &&
         (flags & FrameType::Bulk)) {
@@ -359,7 +359,7 @@ ssize_t AaCommunicator::getMessage(int fd, void *buf, size_t nbytes) {
       throw std::runtime_error("SSL_write error");
     }
     lk.unlock();
-    auto encBuf = (__u8 *)buf;
+    auto encBuf = (uint8_t *)buf;
     auto offset = 4;
     if ((flags & FrameType::Bulk) == FrameType::First) {
       offset += 4;
@@ -387,7 +387,7 @@ ssize_t AaCommunicator::getMessage(int fd, void *buf, size_t nbytes) {
     pushBackInt16(msgBytes, length);
     std::copy(msg.content.begin(), msg.content.end(),
               std::back_inserter(msgBytes));
-    std::copy(msgBytes.begin(), msgBytes.end(), (__u8 *)buf);
+    std::copy(msgBytes.begin(), msgBytes.end(), (uint8_t *)buf);
     return msgBytes.size();
   }
 }

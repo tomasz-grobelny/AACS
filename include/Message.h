@@ -1,5 +1,6 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
+#include <cstdint>
 #include <sys/stat.h>
 #include <vector>
 #pragma once
@@ -23,8 +24,8 @@ enum MessageTypeFlags {
 class Message {
 public:
   Message();
-  __u8 channel;
-  __u8 flags;
-  std::vector<__u8> content;
+  uint8_t channel;
+  uint8_t flags;
+  std::vector<uint8_t> content;
   int offset;
 };
