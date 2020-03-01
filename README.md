@@ -48,4 +48,8 @@ So what exactly could be displayed on headunit? Here are a few ideas:
 * any graphical Linux application (using GStreamer's ximagesrc plugin)
 
 # Status
-Currently AAServer cannot do much. It can only switch switch to AOA (Android Open Accessory) mode and process one specific message (version request). Stay tuned.
+Currently AAServer cannot do much. But it can do the following:
+* it can switch to AOA (Android Open Accessory) mode,
+* it can authenticate to AA headunit using certificates,
+* it can open video channel and display something on headunit,
+* ...stay tuned for more.

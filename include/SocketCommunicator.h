@@ -7,13 +7,13 @@
 #include <mutex>
 #include <string>
 #include <thread>
-#include <vector>
+#include <set>
 
 class SocketCommunicator {
   void listenThreadMethod();
   std::thread listenThread;
   bool listenThreadCancel = false;
-  std::vector<SocketClient *> clients;
+  std::set<SocketClient *> clients;
   std::string path;
   int sock;
 

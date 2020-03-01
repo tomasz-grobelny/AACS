@@ -1,5 +1,6 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
+#include "ChannelType.h"
 #include "Function.h"
 #include "Gadget.h"
 #include "Message.h"
@@ -13,8 +14,6 @@
 #include <thread>
 #include <vector>
 #pragma once
-
-enum ChannelType { Video, MaxValue };
 
 class AaCommunicator {
   const Library &lib;
@@ -119,7 +118,7 @@ public:
   void setup(const Udc &udc);
   boost::signals2::signal<void(const std::exception &ex)> error;
   void openChannel(ChannelType ct);
-  void sendToChannel(ChannelType ct, const std::vector<std::byte> &data);
+  void sendToChannel(ChannelType ct, const std::vector<uint8_t> &data);
   void closeChannel(ChannelType ct);
 
   ~AaCommunicator();

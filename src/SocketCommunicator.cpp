@@ -49,8 +49,9 @@ void SocketCommunicator::listenThreadMethod() {
         throw runtime_error("accept failed");
       }
       client = new SocketClient(msgsock);
+      clients.insert(client);
+      client->disconnected.connect([&, client]() { clients.erase(client); });
       newClient(client);
-      clients.push_back(client);
     } catch (const exception &ex) {
       if (client)
         delete client;

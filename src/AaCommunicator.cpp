@@ -162,7 +162,11 @@ void AaCommunicator::handleChannelMessage(const Message &message) {
   cv.notify_all();
 }
 
-void AaCommunicator::sendToChannel(ChannelType ct, const vector<byte> &data) {}
+void AaCommunicator::sendToChannel(ChannelType ct, const vector<uint8_t> &data) {
+  auto channel = channelTypeToChannelNumber[ct];
+  sendMessage(channel, EncryptionType::Encrypted | FrameType::Bulk, data);
+}
+
 void AaCommunicator::closeChannel(ChannelType ct) {}
 
 std::vector<__u8>

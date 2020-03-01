@@ -17,7 +17,7 @@ SocketClient::~SocketClient() {
 
 void SocketClient::clientThreadMethod() {
   int bufSize = 100 * 1024;
-  byte buffer[bufSize];
+  uint8_t buffer[bufSize];
   for (;;) {
     struct timeval timeout {
       1, 0
@@ -40,7 +40,9 @@ void SocketClient::clientThreadMethod() {
       break;
     } else {
       Packet p;
-      copy(buffer, buffer + bufSize, back_inserter(p.data));
+      p.packetType = (PacketType)buffer[0];
+      p.channelType = (ChannelType)buffer[1];
+      copy(buffer + 2, buffer + ret, back_inserter(p.data));
       gotPacket(p);
     }
   }
