@@ -6,15 +6,23 @@
 #include "ModeSwitcher.h"
 #include "SocketCommunicator.h"
 #include "Udc.h"
+#include <csignal>
 #include <iostream>
 
 using namespace std;
 
 string configFsBasePath = "/sys/kernel/config";
+ManualResetEvent mre;
+
+void signal_handler(int signal) {
+  cout << "Quitting..." << endl;
+  mre.set();
+  std::signal(SIGINT, SIG_DFL);
+}
 
 int main() {
+  signal(SIGINT, signal_handler);
   try {
-    ManualResetEvent mre;
     Library lib(configFsBasePath);
     ModeSwitcher::handleSwitchToAccessoryMode(lib);
     AaCommunicator aac(lib);

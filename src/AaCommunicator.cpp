@@ -466,6 +466,8 @@ void AaCommunicator::dataPump(ThreadDescriptor *t) {
   int bufSize = 100 * 1024;
   char buffer[bufSize];
 
+  signal(SIGUSR1, [](int) {});
+
   for (;;) {
     try {
       auto length =
@@ -507,6 +509,10 @@ AaCommunicator::~AaCommunicator() {
     threadFinished = true;
   }
 
+  // workaround for blocking read
+  for (auto &&th : threads) {
+    pthread_kill(th.native_handle(), SIGUSR1);
+  }
   for (auto &&th : threads) {
     th.join();
   }
