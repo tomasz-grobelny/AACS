@@ -35,7 +35,7 @@ Development tools used:
 Client Visual Studio Code can run both Windows and Linux.
 
 # Design
-Android Auto Protocol is not documented. However, it has been reverse engineered and open source implementation exists (see https://github.com/opencardev/openauto). While this code does not use a single line from openauto, openauto is extremenly useful while developing and testing AACS.
+Android Auto Protocol is not documented. However, it has been reverse engineered and open source implementation exists (see https://github.com/opencardev/openauto). While this code does not use a single line from openauto (except for headunit key/cert), openauto is extremenly useful while developing and testing AACS.
 
 There are several components that comprise AACS:
 * AAServer is the component responsible for communication with car's headunit. When USB OTG connection is available AAServer starts Android Auto communication with headunit and start listening on a Unix socket for client connections.

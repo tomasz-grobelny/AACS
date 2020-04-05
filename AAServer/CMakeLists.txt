@@ -49,13 +49,14 @@ target_link_libraries(AAServer OpenSSL::SSL OpenSSL::Crypto)
 target_link_libraries(AAServer protobuf::libprotobuf)
 include_directories(${LIBUSBGX_INCLUDE_DIRS})
 
-add_custom_command(OUTPUT self_sign.key COMMAND openssl genrsa -out self_sign.key 2048 > /dev/null 2>&1)
-add_custom_target(sskey DEPENDS self_sign.key)
-
-add_custom_command(OUTPUT self_sign.crt COMMAND openssl req -x509 -new -nodes -key self_sign.key -subj "/C=PL/ST=MA/O=TAG/CN=Tomasz Grobelny" -sha256 -days 1024 -out self_sign.crt DEPENDS sskey)
-add_custom_target(sscrt DEPENDS self_sign.crt)
-
 add_custom_command(OUTPUT dhparam.pem COMMAND openssl dhparam -out dhparam.pem 2048 > /dev/null 2>&1)
 add_custom_target(dhparam DEPENDS dhparam.pem)
-
-add_dependencies(AAServer sskey sscrt dhparam)
+add_dependencies(AAServer dhparam)
+add_custom_command(TARGET AAServer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/ssl/android_auto.crt
+            ${CMAKE_CURRENT_BINARY_DIR}/android_auto.crt)
+add_custom_command(TARGET AAServer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/ssl/android_auto.key
+            ${CMAKE_CURRENT_BINARY_DIR}/android_auto.key)

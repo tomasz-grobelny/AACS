@@ -13,8 +13,8 @@
 #include <unistd.h>
 #include <vector>
 
-#define CRT_FILE "cert.crt"
-#define PRIVKEY_FILE "priv.key"
+#define CRT_FILE "headunit.crt"
+#define PRIVKEY_FILE "headunit.key"
 #define DHPARAM_FILE "dhparam.pem"
 
 using namespace std;

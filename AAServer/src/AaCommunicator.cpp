@@ -21,8 +21,8 @@
 #include <openssl/ssl.h>
 #include <stdexcept>
 
-#define CRT_FILE "self_sign.crt"
-#define PRIVKEY_FILE "self_sign.key"
+#define CRT_FILE "android_auto.crt"
+#define PRIVKEY_FILE "android_auto.key"
 #define DHPARAM_FILE "dhparam.pem"
 
 using namespace std;
