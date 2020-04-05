@@ -54,6 +54,12 @@ class AaCommunicator {
     ServiceDiscoveryResponse = 6,
     ChannelOpenRequest = 7,
     ChannelOpenResponse = 8,
+    PingRequest = 0xb,
+    PingResponse = 0xc,
+    NavigationFocusRequest = 0x0d,
+    NavigationFocusResponse = 0x0e,
+    AudioFocusRequest = 0x12,
+    AudioFocusResponse = 0x13,
   };
 
   enum MediaMessageType {
@@ -74,7 +80,8 @@ class AaCommunicator {
     std::function<bool()> checkTerminate;
   };
 
-  void sendMessage(uint8_t channel, uint8_t flags, const std::vector<uint8_t> &buf);
+  void sendMessage(uint8_t channel, uint8_t flags,
+                   const std::vector<uint8_t> &buf);
   void sendVersionResponse(__u16 major, __u16 minor);
   void handleVersionRequest(const void *buf, size_t nbytes);
   void handleSslHandshake(const void *buf, size_t nbytes);
@@ -100,7 +107,7 @@ class AaCommunicator {
   BIO *readBio = nullptr;
   BIO *writeBio = nullptr;
 
-  int channelTypeToChannelNumber[ChannelType::MaxValue];
+  uint8_t channelTypeToChannelNumber[ChannelType::MaxValue];
   void handleChannelMessage(const Message &message);
 
   std::map<int, bool> gotChannelOpenResponse;
@@ -112,14 +119,22 @@ class AaCommunicator {
   void sendStartIndication(int channelId);
   std::mutex m;
   std::condition_variable cv;
+  std::vector<uint8_t> serviceDescriptor;
+
+  std::set<uint8_t> openedChannels;
 
 public:
   AaCommunicator(const Library &_lib);
   void setup(const Udc &udc);
   boost::signals2::signal<void(const std::exception &ex)> error;
-  void openChannel(ChannelType ct);
-  void sendToChannel(ChannelType ct, const std::vector<uint8_t> &data);
+  boost::signals2::signal<void(uint8_t channelNumber, bool specific,
+                               std::vector<uint8_t> data)>
+      gotMessage;
+  uint8_t openChannel(ChannelType ct);
+  void sendToChannel(uint8_t channelNumber, bool specific,
+                     const std::vector<uint8_t> &data);
   void closeChannel(ChannelType ct);
+  std::vector<uint8_t> getServiceDescriptor();
 
   ~AaCommunicator();
 };

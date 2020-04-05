@@ -19,7 +19,7 @@
 #include <unistd.h>
 
 ssize_t ModeSwitcher::handleSwitchMessage(int fd, const void *buf,
-                                                  size_t nbytes) {
+                                          size_t nbytes) {
   const usb_functionfs_event *event = (const usb_functionfs_event *)buf;
   for (size_t n = nbytes / sizeof *event; n; --n, ++event) {
     if (event->type == FUNCTIONFS_SETUP) {
@@ -74,8 +74,7 @@ void ModeSwitcher::handleSwitchToAccessoryMode(const Library &lib) {
       continue;
     if (length == -1)
       break;
-    checkError(handleSwitchMessage(fd, buffer, length),
-               {EINTR, EAGAIN});
+    checkError(handleSwitchMessage(fd, buffer, length), {EINTR, EAGAIN});
   }
   close(fd);
 }

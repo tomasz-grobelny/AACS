@@ -9,6 +9,7 @@
 class Packet {
 public:
   PacketType packetType;
-  ChannelType channelType;
+  uint8_t channelNumber;
+  uint8_t specific;
   std::vector<uint8_t> data;
 };

@@ -5,14 +5,16 @@
 
 using namespace std;
 
-SocketClient::SocketClient(int _fd) : fd(_fd) {
-  clientThread = std::thread([this]() { clientThreadMethod(); });
-}
+SocketClient::SocketClient(int _fd) : fd(_fd) {}
 
 SocketClient::~SocketClient() {
   clientThreadCancel = true;
   clientThread.join();
   close(fd);
+}
+
+void SocketClient::ready() {
+  clientThread = std::thread([this]() { clientThreadMethod(); });
 }
 
 void SocketClient::clientThreadMethod() {
@@ -41,9 +43,18 @@ void SocketClient::clientThreadMethod() {
     } else {
       Packet p;
       p.packetType = (PacketType)buffer[0];
-      p.channelType = (ChannelType)buffer[1];
-      copy(buffer + 2, buffer + ret, back_inserter(p.data));
+      p.channelNumber = buffer[1];
+      if (ret > 2) {
+        p.specific = buffer[2];
+      }
+      copy(buffer + 3, buffer + ret, back_inserter(p.data));
       gotPacket(p);
     }
   }
+}
+
+void SocketClient::sendMessage(const std::vector<uint8_t> &msg) {
+  auto ret = write(fd, msg.data(), msg.size());
+  if (ret != msg.size())
+    throw runtime_error("sendMessage failed");
 }

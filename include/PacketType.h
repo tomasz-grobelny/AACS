@@ -3,4 +3,5 @@
 enum PacketType {
   OpenChannel,
   RawData,
+  GetServiceDescriptor,
 };

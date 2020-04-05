@@ -6,6 +6,7 @@
 #include "Configuration.h"
 #include "FfsFunction.h"
 #include "MediaStreamType.pb.h"
+#include "Message.h"
 #include "ServiceDiscoveryRequest.pb.h"
 #include "ServiceDiscoveryResponse.pb.h"
 #include "Udc.h"
@@ -74,6 +75,7 @@ void AaCommunicator::sendServiceDiscoveryRequest() {
 
 void AaCommunicator::handleServiceDiscoveryResponse(const void *buf,
                                                     size_t nbytes) {
+  serviceDescriptor = vector<uint8_t>((uint8_t *)buf, (uint8_t *)buf + nbytes);
   class tag::aas::ServiceDiscoveryResponse sdr;
   sdr.ParseFromArray(buf, nbytes);
   std::cout << sdr.DebugString() << std::endl;
@@ -128,8 +130,8 @@ void AaCommunicator::sendStartIndication(int channelId) {
   sendMessage(channelId, FrameType::Bulk | EncryptionType::Encrypted, plainMsg);
 }
 
-void AaCommunicator::openChannel(ChannelType ct) {
-  int channelId = channelTypeToChannelNumber[ct];
+uint8_t AaCommunicator::openChannel(ChannelType ct) {
+  auto channelId = channelTypeToChannelNumber[ct];
   if (channelId < 0) {
     throw runtime_error("Invalid channelId");
   }
@@ -141,6 +143,8 @@ void AaCommunicator::openChannel(ChannelType ct) {
   expectSetupResponse(channelId);
   sendStartIndication(channelId);
   std::cout << "ready to send data" << std::endl;
+  openedChannels.insert(channelId);
+  return channelId;
 }
 
 void AaCommunicator::handleChannelMessage(const Message &message) {
@@ -149,25 +153,43 @@ void AaCommunicator::handleChannelMessage(const Message &message) {
   auto messageType = be16_to_cpu(shortView[0]);
   {
     std::unique_lock<std::mutex> lk(m);
-    if (messageType == MessageType::ChannelOpenResponse) {
-      gotChannelOpenResponse[message.channel] = true;
-    } else if (messageType == MediaMessageType::SetupResponse) {
-      gotSetupResponse[message.channel] = true;
-    } else if (messageType == MediaMessageType::VideoFocusIndication) {
-    } else if (messageType == MediaMessageType::MediaAckIndication) {
+    auto handleInternally =
+        openedChannels.find(message.channel) != openedChannels.end();
+    if (handleInternally) {
+      if (messageType == MessageType::ChannelOpenResponse) {
+        gotChannelOpenResponse[message.channel] = true;
+      } else if (messageType == MediaMessageType::SetupResponse) {
+        gotSetupResponse[message.channel] = true;
+      } else if (messageType == MediaMessageType::VideoFocusIndication) {
+      } else if (messageType == MediaMessageType::MediaAckIndication) {
+      } else {
+        throw std::runtime_error("Unknown packet");
+      }
     } else {
-      throw std::runtime_error("Unknown packet");
+      gotMessage(message.channel, message.flags & MessageTypeFlags::Specific,
+                 msg);
     }
   }
   cv.notify_all();
 }
 
-void AaCommunicator::sendToChannel(ChannelType ct, const vector<uint8_t> &data) {
-  auto channel = channelTypeToChannelNumber[ct];
-  sendMessage(channel, EncryptionType::Encrypted | FrameType::Bulk, data);
+void AaCommunicator::sendToChannel(uint8_t channelNumber, bool specific,
+                                   const vector<uint8_t> &data) {
+  uint8_t flags = EncryptionType::Encrypted | FrameType::Bulk;
+  if (specific) {
+    flags |= MessageTypeFlags::Specific;
+  }
+  sendMessage(channelNumber, flags, data);
 }
 
-void AaCommunicator::closeChannel(ChannelType ct) {}
+void AaCommunicator::closeChannel(ChannelType ct) {
+  auto channelId = channelTypeToChannelNumber[ct];
+  openedChannels.erase(channelId);
+}
+
+std::vector<uint8_t> AaCommunicator::getServiceDescriptor() {
+  return serviceDescriptor;
+}
 
 std::vector<uint8_t>
 AaCommunicator::decryptMessage(const std::vector<uint8_t> &encryptedMsg) {
@@ -181,6 +203,7 @@ AaCommunicator::decryptMessage(const std::vector<uint8_t> &encryptedMsg) {
   ret = SSL_read(ssl, plainBuf, 20000);
   if (ret < 0) {
     auto err = SSL_get_error(ssl, ret);
+    ERR_print_errors_fp(stdout);
     auto message = "SSL_read failed: " + std::to_string(ret);
     message += " " + std::to_string(err);
     if (err == SSL_ERROR_SSL)
@@ -196,13 +219,20 @@ void AaCommunicator::handleMessageContent(const Message &message) {
   MessageType messageType = (MessageType)be16_to_cpu(shortView[0]);
   if (message.channel != 0) {
     handleChannelMessage(message);
+  } else if (messageType == MessageType::AudioFocusResponse) {
+    handleChannelMessage(message);
+  } else if (messageType == MessageType::NavigationFocusResponse) {
+    handleChannelMessage(message);
   } else if (messageType == MessageType::VersionRequest) {
     handleVersionRequest(shortView + 1, msg.size() - sizeof(__u16));
+    cout << "version negotiation ok" << endl;
   } else if (messageType == MessageType::SslHandshake) {
     handleSslHandshake(shortView + 1, msg.size() - sizeof(__u16));
   } else if (messageType == MessageType::AuthComplete) {
+    cout << "auth complete" << endl;
     sendServiceDiscoveryRequest();
   } else if (messageType == MessageType::ServiceDiscoveryResponse) {
+    cout << "got service discovery response" << endl;
     handleServiceDiscoveryResponse(shortView + 1, msg.size() - sizeof(__u16));
   } else {
     throw std::runtime_error("Unhandled message type: " +

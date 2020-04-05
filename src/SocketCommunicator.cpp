@@ -52,6 +52,7 @@ void SocketCommunicator::listenThreadMethod() {
       clients.insert(client);
       client->disconnected.connect([&, client]() { clients.erase(client); });
       newClient(client);
+      client->ready();
     } catch (const exception &ex) {
       if (client)
         delete client;

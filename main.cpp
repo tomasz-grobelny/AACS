@@ -1,13 +1,18 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
 #include "AaCommunicator.h"
+#include "ChannelType.h"
 #include "Library.h"
 #include "ManualResetEvent.h"
 #include "ModeSwitcher.h"
+#include "Packet.h"
+#include "PacketType.h"
 #include "SocketCommunicator.h"
 #include "Udc.h"
 #include <csignal>
 #include <iostream>
+#include <iterator>
+#include <stdexcept>
 
 using namespace std;
 
@@ -32,17 +37,45 @@ int main() {
       cout << ex.what() << endl;
       mre.set();
     });
+    set<SocketClient *> clients;
+    int hi = 0;
+    aac.gotMessage.connect([&clients, &hi](int channelNumber, bool specific,
+                                           vector<uint8_t> data) {
+      cout << hi++ << " data from headunit: " << channelNumber << " "
+           << data.size() << endl;
+      vector<uint8_t> msg;
+      msg.push_back(channelNumber);
+      msg.push_back(specific ? 0xff : 0x00);
+      copy(data.begin(), data.end(), back_inserter(msg));
+      for (auto cl : clients) {
+        cl->sendMessage(msg);
+      }
+    });
     SocketCommunicator sc("./socket");
+    int pi = 0;
     sc.newClient.connect([&](SocketClient *scl) {
-      cout << "openChannel" << endl;
-      aac.openChannel(ChannelType::Video);
-      scl->gotPacket.connect([&aac](const Packet &p) {
-        cout << "sendToChannel" << endl;
-        aac.sendToChannel(ChannelType::Video, p.data);
+      cout << "connect" << endl;
+      clients.insert(scl);
+      scl->gotPacket.connect([&aac, scl, &pi](const Packet &p) {
+        if (p.packetType == PacketType::OpenChannel) {
+          cout << "open channel: " << p.channelNumber << endl;
+          auto channelId = aac.openChannel((ChannelType)p.channelNumber);
+          scl->sendMessage({channelId});
+        } else if (p.packetType == PacketType::RawData) {
+          cout << pi++ << " data from phone: " << (int)p.channelNumber << " "
+               << (int)p.specific << " " << p.data.size() << endl;
+          aac.sendToChannel(p.channelNumber, p.specific, p.data);
+        } else if (p.packetType == PacketType::GetServiceDescriptor) {
+          cout << "get service descriptor" << endl;
+          scl->sendMessage(aac.getServiceDescriptor());
+        } else {
+          throw runtime_error("Unknown packetType");
+        }
       });
-      scl->disconnected.connect([&aac]() {
+      scl->disconnected.connect([&aac, &clients, scl]() {
         cout << "closeChannel" << endl;
         aac.closeChannel(ChannelType::Video);
+        clients.erase(scl);
       });
     });
     mre.wait();

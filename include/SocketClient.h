@@ -16,4 +16,6 @@ public:
   ~SocketClient();
   boost::signals2::signal<void(const Packet &p)> gotPacket;
   boost::signals2::signal<void()> disconnected;
+  void sendMessage(const std::vector<uint8_t>& msg);
+  void ready();
 };
