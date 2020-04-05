@@ -137,13 +137,13 @@ uint8_t AaCommunicator::openChannel(ChannelType ct) {
   }
   gotChannelOpenResponse[channelId] = false;
   gotSetupResponse[channelId] = false;
+  openedChannels.insert(channelId);
   sendChannelOpenRequest(channelId);
   expectChannelOpenResponse(channelId);
   sendSetupRequest(channelId);
   expectSetupResponse(channelId);
   sendStartIndication(channelId);
   std::cout << "ready to send data" << std::endl;
-  openedChannels.insert(channelId);
   return channelId;
 }
 

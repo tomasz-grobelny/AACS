@@ -58,7 +58,7 @@ int main() {
       clients.insert(scl);
       scl->gotPacket.connect([&aac, scl, &pi](const Packet &p) {
         if (p.packetType == PacketType::OpenChannel) {
-          cout << "open channel: " << p.channelNumber << endl;
+          cout << "open channel: " << (int)p.channelNumber << endl;
           auto channelId = aac.openChannel((ChannelType)p.channelNumber);
           scl->sendMessage({channelId});
         } else if (p.packetType == PacketType::RawData) {
