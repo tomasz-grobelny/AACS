@@ -35,11 +35,13 @@ Development tools used:
 Client Visual Studio Code can run both Windows and Linux.
 
 # Design
-Android Auto Protocol is not documented. However, it has been reverse engineered and open source implementation exists (see https://github.com/opencardev/openauto). While this code does not use a single line from openauto, openauto is extremenly useful while developing and testing AAServer.
+Android Auto Protocol is not documented. However, it has been reverse engineered and open source implementation exists (see https://github.com/opencardev/openauto). While this code does not use a single line from openauto, openauto is extremenly useful while developing and testing AACS.
 
-The idea is to have AAServer that sets up all communication with AA enabled headunit, takes care of USB communication, encryption and exposes AA headunit capabilities through Unix domain socket.
-
-Second part of the project is to create GStreamer plugin that would connect to the socket and allow to stream any content to the headunit.
+There are several components that comprise AACS:
+* AAServer is the component responsible for communication with car's headunit. When USB OTG connection is available AAServer starts Android Auto communication with headunit and start listening on a Unix socket for client connections.
+* AAClient is the component responsible for communication with mobile device running Andoid Auto. It starts connection to AAServer to get available service description and then forwards all the traffic to AAServer.
+* [AAVideoSink](https://github.com/tomasz-grobelny/AAVideoSink) is a GStreamer plugin that connects to a socket exposed by AAServer which allows to stream any content to the headunit.
+* more to come - several more components integrating AACS with generic system components are possible such as uinput device (for touch events), GStreamer audio sink, audio/video source, etc.
 
 # Usage ideas
 So what exactly could be displayed on headunit? Here are a few ideas:
@@ -48,8 +50,7 @@ So what exactly could be displayed on headunit? Here are a few ideas:
 * any graphical Linux application (using GStreamer's ximagesrc plugin)
 
 # Status
-Currently AAServer cannot do much. But it can do the following:
-* it can switch to AOA (Android Open Accessory) mode,
-* it can authenticate to AA headunit using certificates,
-* it can open video channel and display something on headunit,
+Currently AACS can do the following:
+* it can act as proxy for Android Auto traffic,
+* stream any content to the headunit,
 * ...stay tuned for more.
