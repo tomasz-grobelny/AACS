@@ -38,6 +38,9 @@ add_executable(AAServer main.cpp
     src/SocketClient.cpp
     src/SocketCommunicator.cpp
     src/ManualResetEvent.cpp
+    src/ChannelHandler.cpp
+    src/DefaultChannelHandler.cpp
+    src/VideoChannelHandler.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
 )

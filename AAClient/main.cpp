@@ -74,7 +74,14 @@ int main(int argc, char **argv) {
       auto ret = read(fd, buffer, sizeof buffer);
       if (ret <= 0)
         throw runtime_error("read failed");
-      cout << hi++ << " data from headunit: " << ret << endl;
+      cout << hi++ << " data from headunit: " << ret;
+#ifdef PRINT_PACKET
+      cout << " c: " << (int)buffer[0];
+      for (auto i = 2; i < ret; i++) {
+        cout << " 0x" << hex << (int)buffer[i];
+      }
+#endif
+      cout << dec << endl;
       communicator.sendMessagePublic(buffer[0], (bool)buffer[1],
                                      vector<uint8_t>(buffer + 2, buffer + ret));
     }
@@ -91,10 +98,17 @@ int main(int argc, char **argv) {
         auto ret = write(fd, message.data(), message.size());
         if (ret != message.size())
           throw runtime_error("write failed");
-        cout << pi++ << " data from phone: " << message.size() << endl;
+        cout << pi++ << " data from phone: " << message.size();
+#ifdef PRINT_PACKET
+        cout << " c: " << (int)channel;
+        for (auto i = 0; i < msg.size(); i++) {
+          cout << " 0x" << hex << (int)msg.data()[i];
+        }
+#endif
+        cout << dec << endl;
       });
   communicator.setup();
-  //sleep(100000);
+  // sleep(100000);
 
   return 0;
 }

@@ -4,12 +4,14 @@
 #include "Channel.pb.h"
 #include "ChannelOpenRequest.pb.h"
 #include "Configuration.h"
+#include "DefaultChannelHandler.h"
 #include "FfsFunction.h"
 #include "MediaStreamType.pb.h"
 #include "Message.h"
 #include "ServiceDiscoveryRequest.pb.h"
 #include "ServiceDiscoveryResponse.pb.h"
 #include "Udc.h"
+#include "VideoChannelHandler.h"
 #include "descriptors.h"
 #include "utils.h"
 #include <boost/filesystem.hpp>
@@ -84,50 +86,23 @@ void AaCommunicator::handleServiceDiscoveryResponse(const void *buf,
         ch.media_channel().media_type() ==
             MediaStreamType_Enum::MediaStreamType_Enum_Video) {
       channelTypeToChannelNumber[ChannelType::Video] = ch.channel_id();
+      channelHandlers[ch.channel_id()] =
+          new VideoChannelHandler(ch.channel_id());
+    } else {
+      channelHandlers[ch.channel_id()] =
+          new DefaultChannelHandler(ch.channel_id());
     }
+    channelHandlers[ch.channel_id()]->sendToClient.connect(
+        [this](uint8_t channelNumber, bool specific,
+               std::vector<uint8_t> data) {
+          gotMessage(channelNumber, specific, data);
+        });
+    channelHandlers[ch.channel_id()]->sendToHeadunit.connect(
+        [this](uint8_t channelNumber, uint8_t flags,
+               std::vector<uint8_t> data) {
+          sendMessage(channelNumber, flags, data);
+        });
   }
-}
-
-void AaCommunicator::sendChannelOpenRequest(int channelId) {
-  class ChannelOpenRequest cor;
-  cor.set_channel_id(channelId);
-  cor.set_unknown_field(0);
-  const auto &msgString = cor.SerializeAsString();
-  std::vector<uint8_t> plainMsg;
-  pushBackInt16(plainMsg, MessageType::ChannelOpenRequest);
-  std::copy(msgString.begin(), msgString.end(), std::back_inserter(plainMsg));
-  sendMessage(channelId,
-              FrameType::Bulk | EncryptionType::Encrypted |
-                  MessageTypeFlags::Specific,
-              plainMsg);
-}
-
-void AaCommunicator::expectChannelOpenResponse(int channelId) {
-  std::unique_lock<std::mutex> lk(m);
-  cv.wait(lk, [=] { return gotChannelOpenResponse[channelId]; });
-}
-
-void AaCommunicator::sendSetupRequest(int channelId) {
-  std::vector<uint8_t> plainMsg;
-  pushBackInt16(plainMsg, MediaMessageType::SetupRequest);
-  plainMsg.push_back(0x08);
-  plainMsg.push_back(0x03);
-  sendMessage(channelId, FrameType::Bulk | EncryptionType::Encrypted, plainMsg);
-}
-
-void AaCommunicator::expectSetupResponse(int channelId) {
-  std::unique_lock<std::mutex> lk(m);
-  cv.wait(lk, [=] { return gotSetupResponse[channelId]; });
-}
-
-void AaCommunicator::sendStartIndication(int channelId) {
-  std::vector<uint8_t> plainMsg;
-  pushBackInt16(plainMsg, MediaMessageType::StartIndication);
-  plainMsg.push_back(0x08);
-  plainMsg.push_back(0x00);
-  plainMsg.push_back(0x10);
-  plainMsg.push_back(0x00);
-  sendMessage(channelId, FrameType::Bulk | EncryptionType::Encrypted, plainMsg);
 }
 
 uint8_t AaCommunicator::openChannel(ChannelType ct) {
@@ -135,14 +110,7 @@ uint8_t AaCommunicator::openChannel(ChannelType ct) {
   if (channelId < 0) {
     throw runtime_error("Invalid channelId");
   }
-  gotChannelOpenResponse[channelId] = false;
-  gotSetupResponse[channelId] = false;
-  openedChannels.insert(channelId);
-  sendChannelOpenRequest(channelId);
-  expectChannelOpenResponse(channelId);
-  sendSetupRequest(channelId);
-  expectSetupResponse(channelId);
-  sendStartIndication(channelId);
+  channelHandlers[channelId]->openChannel();
   std::cout << "ready to send data" << std::endl;
   return channelId;
 }
@@ -153,16 +121,11 @@ void AaCommunicator::handleChannelMessage(const Message &message) {
   auto messageType = be16_to_cpu(shortView[0]);
   {
     std::unique_lock<std::mutex> lk(m);
-    auto handleInternally =
-        openedChannels.find(message.channel) != openedChannels.end();
-    if (handleInternally) {
-      if (messageType == MessageType::ChannelOpenResponse) {
-        gotChannelOpenResponse[message.channel] = true;
-      } else if (messageType == MediaMessageType::SetupResponse) {
-        gotSetupResponse[message.channel] = true;
-      } else if (messageType == MediaMessageType::VideoFocusIndication) {
-      } else if (messageType == MediaMessageType::MediaAckIndication) {
-      } else {
+    if (message.channel != 0) {
+      auto handled =
+          this->channelHandlers[message.channel]->handleMessageFromHeadunit(
+              message);
+      if (!handled) {
         throw std::runtime_error("Unknown packet");
       }
     } else {
@@ -175,16 +138,13 @@ void AaCommunicator::handleChannelMessage(const Message &message) {
 
 void AaCommunicator::sendToChannel(uint8_t channelNumber, bool specific,
                                    const vector<uint8_t> &data) {
-  uint8_t flags = EncryptionType::Encrypted | FrameType::Bulk;
-  if (specific) {
-    flags |= MessageTypeFlags::Specific;
-  }
-  sendMessage(channelNumber, flags, data);
+  channelHandlers[channelNumber]->handleMessageFromClient(channelNumber,
+                                                          specific, data);
 }
 
 void AaCommunicator::closeChannel(ChannelType ct) {
   auto channelId = channelTypeToChannelNumber[ct];
-  openedChannels.erase(channelId);
+  channelHandlers[channelId]->closeChannel();
 }
 
 std::vector<uint8_t> AaCommunicator::getServiceDescriptor() {
