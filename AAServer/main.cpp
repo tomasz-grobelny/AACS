@@ -57,9 +57,10 @@ int main() {
       cout << "connect" << endl;
       clients.insert(scl);
       scl->gotPacket.connect([&aac, scl, &pi](const Packet &p) {
-        if (p.packetType == PacketType::OpenChannel) {
+        if (p.packetType == PacketType::GetChannelNumberByChannelType) {
           cout << "open channel: " << (int)p.channelNumber << endl;
-          auto channelId = aac.openChannel((ChannelType)p.channelNumber);
+          auto channelId =
+              aac.getChannelNumberByChannelType((ChannelType)p.channelNumber);
           scl->sendMessage({channelId});
         } else if (p.packetType == PacketType::RawData) {
           cout << pi++ << " data from phone: " << (int)p.channelNumber << " "
@@ -73,8 +74,8 @@ int main() {
         }
       });
       scl->disconnected.connect([&aac, &clients, scl]() {
-        cout << "closeChannel" << endl;
-        aac.closeChannel(ChannelType::Video);
+        cout << "disconnected" << endl;
+        aac.disconnected();
         clients.erase(scl);
       });
     });

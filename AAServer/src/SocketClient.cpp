@@ -44,9 +44,7 @@ void SocketClient::clientThreadMethod() {
       Packet p;
       p.packetType = (PacketType)buffer[0];
       p.channelNumber = buffer[1];
-      if (ret > 2) {
-        p.specific = buffer[2];
-      }
+      p.specific = buffer[2];
       copy(buffer + 3, buffer + ret, back_inserter(p.data));
       gotPacket(p);
     }

@@ -24,7 +24,7 @@ void VideoChannelHandler::openChannel() {
   sendStartIndication();
 }
 
-void VideoChannelHandler::closeChannel() { channelOpened = false; }
+void VideoChannelHandler::disconnected() { channelOpened = false; }
 
 void VideoChannelHandler::sendSetupRequest() {
   std::vector<uint8_t> plainMsg;
@@ -86,6 +86,18 @@ bool VideoChannelHandler::handleMessageFromClient(uint8_t channelId,
   if (specific) {
     flags |= MessageTypeFlags::Specific;
   }
-  sendToHeadunit(channelId, flags, data);
-  return true;
+  auto msgType = data[0];
+  if (msgType == 0x00) {
+    // raw data
+    vector<uint8_t> msgToHeadunit;
+    copy(data.begin() + 1, data.end(), back_inserter(msgToHeadunit));
+    sendToHeadunit(channelId, flags, msgToHeadunit);
+    return true;
+  } else if (msgType == 0x01) {
+    openChannel();
+    sendToClient(channelId, false, {0xff});
+    return true;
+  } else {
+    return false;
+  }
 }

@@ -48,3 +48,5 @@ void ChannelHandler::expectChannelOpenResponse() {
   std::unique_lock<std::mutex> lk(m);
   cv.wait(lk, [=] { return gotChannelOpenResponse; });
 }
+
+void ChannelHandler::disconnected() {}

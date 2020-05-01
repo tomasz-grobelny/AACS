@@ -16,6 +16,7 @@
 #include "utils.h"
 #include <boost/filesystem.hpp>
 #include <boost/signals2.hpp>
+#include <cstdint>
 #include <fcntl.h>
 #include <functionfs.h>
 #include <iostream>
@@ -105,13 +106,11 @@ void AaCommunicator::handleServiceDiscoveryResponse(const void *buf,
   }
 }
 
-uint8_t AaCommunicator::openChannel(ChannelType ct) {
+uint8_t AaCommunicator::getChannelNumberByChannelType(ChannelType ct) {
   auto channelId = channelTypeToChannelNumber[ct];
   if (channelId < 0) {
     throw runtime_error("Invalid channelId");
   }
-  channelHandlers[channelId]->openChannel();
-  std::cout << "ready to send data" << std::endl;
   return channelId;
 }
 
@@ -142,9 +141,11 @@ void AaCommunicator::sendToChannel(uint8_t channelNumber, bool specific,
                                                           specific, data);
 }
 
-void AaCommunicator::closeChannel(ChannelType ct) {
-  auto channelId = channelTypeToChannelNumber[ct];
-  channelHandlers[channelId]->closeChannel();
+void AaCommunicator::disconnected() {
+  for (auto ch : channelHandlers) {
+    if (ch)
+      ch->disconnected();
+  }
 }
 
 std::vector<uint8_t> AaCommunicator::getServiceDescriptor() {
@@ -394,6 +395,7 @@ ssize_t AaCommunicator::handleEp0Message(int fd, const void *buf,
 AaCommunicator::AaCommunicator(const Library &_lib) : lib(_lib) {
   initializeSslContext();
   fill_n(channelTypeToChannelNumber, ChannelType::MaxValue, -1);
+  fill_n(channelHandlers, UINT8_MAX, nullptr);
 }
 
 void AaCommunicator::setup(const Udc &udc) {

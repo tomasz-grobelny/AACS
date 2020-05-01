@@ -2,6 +2,7 @@
 
 #include "VideoChannelHandler.h"
 #include "enums.h"
+#include <boost/mpl/back_inserter.hpp>
 
 VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
     : ChannelHandler(channelId) {}
@@ -10,7 +11,10 @@ VideoChannelHandler::~VideoChannelHandler() {}
 
 bool VideoChannelHandler::handleMessageFromMobile(
     uint8_t channelId, uint8_t flags, const std::vector<uint8_t> &data) {
-  sendToServer(channelId, flags & MessageTypeFlags::Specific, data);
+  std::vector<uint8_t> msgToServer;
+  msgToServer.push_back(0x00); //raw data
+  copy(data.begin(), data.end(), back_inserter(msgToServer));
+  sendToServer(channelId, flags & MessageTypeFlags::Specific, msgToServer);
   return true;
 }
 

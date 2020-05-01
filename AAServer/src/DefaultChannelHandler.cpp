@@ -11,9 +11,6 @@ DefaultChannelHandler::DefaultChannelHandler(uint8_t channelId)
 }
 DefaultChannelHandler::~DefaultChannelHandler() {}
 
-void DefaultChannelHandler::openChannel() {}
-void DefaultChannelHandler::closeChannel() {}
-
 bool DefaultChannelHandler::handleMessageFromHeadunit(const Message &message) {
   ChannelHandler::sendToClient(message.channel,
                                message.flags & MessageTypeFlags::Specific,

@@ -1,7 +1,7 @@
 #pragma once
 
 enum PacketType {
-  OpenChannel,
+  GetChannelNumberByChannelType,
   RawData,
   GetServiceDescriptor,
 };

@@ -13,11 +13,11 @@ class VideoChannelHandler : public ChannelHandler {
   void sendSetupRequest();
   void expectSetupResponse();
   void sendStartIndication();
+  void openChannel();
 
 public:
   VideoChannelHandler(uint8_t channelId);
-  virtual void openChannel();
-  virtual void closeChannel();
+  virtual void disconnected();
   virtual bool handleMessageFromHeadunit(const Message &message);
   virtual bool handleMessageFromClient(uint8_t channelId, bool specific,
                                        const std::vector<uint8_t> &data);

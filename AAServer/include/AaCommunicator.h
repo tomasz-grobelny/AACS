@@ -82,10 +82,10 @@ public:
   boost::signals2::signal<void(uint8_t channelNumber, bool specific,
                                std::vector<uint8_t> data)>
       gotMessage;
-  uint8_t openChannel(ChannelType ct);
+  uint8_t getChannelNumberByChannelType(ChannelType ct);
   void sendToChannel(uint8_t channelNumber, bool specific,
                      const std::vector<uint8_t> &data);
-  void closeChannel(ChannelType ct);
+  void disconnected();
   std::vector<uint8_t> getServiceDescriptor();
 
   ~AaCommunicator();
