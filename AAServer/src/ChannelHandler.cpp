@@ -49,4 +49,4 @@ void ChannelHandler::expectChannelOpenResponse() {
   cv.wait(lk, [=] { return gotChannelOpenResponse; });
 }
 
-void ChannelHandler::disconnected() {}
+void ChannelHandler::disconnected(int clientId) {}

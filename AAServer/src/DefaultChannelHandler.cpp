@@ -12,14 +12,15 @@ DefaultChannelHandler::DefaultChannelHandler(uint8_t channelId)
 DefaultChannelHandler::~DefaultChannelHandler() {}
 
 bool DefaultChannelHandler::handleMessageFromHeadunit(const Message &message) {
-  ChannelHandler::sendToClient(message.channel,
+  ChannelHandler::sendToClient(-1, message.channel,
                                message.flags & MessageTypeFlags::Specific,
                                message.content);
   return true;
 }
 
 bool DefaultChannelHandler::handleMessageFromClient(
-    uint8_t channelId, bool specific, const vector<uint8_t> &data) {
+    int clientId, uint8_t channelId, bool specific,
+    const vector<uint8_t> &data) {
   uint8_t flags = EncryptionType::Encrypted | FrameType::Bulk;
   if (specific) {
     flags |= MessageTypeFlags::Specific;

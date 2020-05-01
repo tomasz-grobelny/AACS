@@ -37,9 +37,10 @@ int main() {
       cout << ex.what() << endl;
       mre.set();
     });
-    set<SocketClient *> clients;
+    map<SocketClient *, int> clients;
     int hi = 0;
-    aac.gotMessage.connect([&clients, &hi](int channelNumber, bool specific,
+    aac.gotMessage.connect([&clients, &hi](int clientId, int channelNumber,
+                                           bool specific,
                                            vector<uint8_t> data) {
       cout << hi++ << " data from headunit: " << channelNumber << " "
            << data.size() << endl;
@@ -48,15 +49,17 @@ int main() {
       msg.push_back(specific ? 0xff : 0x00);
       copy(data.begin(), data.end(), back_inserter(msg));
       for (auto cl : clients) {
-        cl->sendMessage(msg);
+        if (cl.second == clientId || clientId == -1)
+          cl.first->sendMessage(msg);
       }
     });
     SocketCommunicator sc("./socket");
     int pi = 0;
+    int clientCount = 0;
     sc.newClient.connect([&](SocketClient *scl) {
-      cout << "connect" << endl;
-      clients.insert(scl);
-      scl->gotPacket.connect([&aac, scl, &pi](const Packet &p) {
+      clients.insert({scl, clientCount++});
+      cout << "connect: " << clients[scl] << endl;
+      scl->gotPacket.connect([&aac, scl, &pi, &clients](const Packet &p) {
         if (p.packetType == PacketType::GetChannelNumberByChannelType) {
           cout << "open channel: " << (int)p.channelNumber << endl;
           auto channelId =
@@ -65,7 +68,7 @@ int main() {
         } else if (p.packetType == PacketType::RawData) {
           cout << pi++ << " data from phone: " << (int)p.channelNumber << " "
                << (int)p.specific << " " << p.data.size() << endl;
-          aac.sendToChannel(p.channelNumber, p.specific, p.data);
+          aac.sendToChannel(clients[scl], p.channelNumber, p.specific, p.data);
         } else if (p.packetType == PacketType::GetServiceDescriptor) {
           cout << "get service descriptor" << endl;
           scl->sendMessage(aac.getServiceDescriptor());
@@ -74,8 +77,8 @@ int main() {
         }
       });
       scl->disconnected.connect([&aac, &clients, scl]() {
-        cout << "disconnected" << endl;
-        aac.disconnected();
+        cout << "disconnected: " << clients[scl] << endl;
+        aac.disconnected(clients[scl]);
         clients.erase(scl);
       });
     });

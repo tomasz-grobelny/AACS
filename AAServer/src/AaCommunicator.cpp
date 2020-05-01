@@ -94,9 +94,9 @@ void AaCommunicator::handleServiceDiscoveryResponse(const void *buf,
           new DefaultChannelHandler(ch.channel_id());
     }
     channelHandlers[ch.channel_id()]->sendToClient.connect(
-        [this](uint8_t channelNumber, bool specific,
+        [this](int clientId, uint8_t channelNumber, bool specific,
                std::vector<uint8_t> data) {
-          gotMessage(channelNumber, specific, data);
+          gotMessage(clientId, channelNumber, specific, data);
         });
     channelHandlers[ch.channel_id()]->sendToHeadunit.connect(
         [this](uint8_t channelNumber, uint8_t flags,
@@ -128,23 +128,23 @@ void AaCommunicator::handleChannelMessage(const Message &message) {
         throw std::runtime_error("Unknown packet");
       }
     } else {
-      gotMessage(message.channel, message.flags & MessageTypeFlags::Specific,
+      gotMessage(-1, message.channel, message.flags & MessageTypeFlags::Specific,
                  msg);
     }
   }
   cv.notify_all();
 }
 
-void AaCommunicator::sendToChannel(uint8_t channelNumber, bool specific,
-                                   const vector<uint8_t> &data) {
-  channelHandlers[channelNumber]->handleMessageFromClient(channelNumber,
-                                                          specific, data);
+void AaCommunicator::sendToChannel(int clientId, uint8_t channelNumber,
+                                   bool specific, const vector<uint8_t> &data) {
+  channelHandlers[channelNumber]->handleMessageFromClient(
+      clientId, channelNumber, specific, data);
 }
 
-void AaCommunicator::disconnected() {
+void AaCommunicator::disconnected(int clientId) {
   for (auto ch : channelHandlers) {
     if (ch)
-      ch->disconnected();
+      ch->disconnected(clientId);
   }
 }
 

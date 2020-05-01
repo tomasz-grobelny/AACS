@@ -24,7 +24,7 @@ void VideoChannelHandler::openChannel() {
   sendStartIndication();
 }
 
-void VideoChannelHandler::disconnected() { channelOpened = false; }
+void VideoChannelHandler::disconnected(int clientId) { channelOpened = false; }
 
 void VideoChannelHandler::sendSetupRequest() {
   std::vector<uint8_t> plainMsg;
@@ -53,7 +53,7 @@ void VideoChannelHandler::sendStartIndication() {
 
 bool VideoChannelHandler::handleMessageFromHeadunit(const Message &message) {
   if (!channelOpened) {
-    ChannelHandler::sendToClient(message.channel,
+    ChannelHandler::sendToClient(-1, message.channel,
                                  message.flags & MessageTypeFlags::Specific,
                                  message.content);
     return true;
@@ -79,7 +79,8 @@ bool VideoChannelHandler::handleMessageFromHeadunit(const Message &message) {
   return messageHandled;
 }
 
-bool VideoChannelHandler::handleMessageFromClient(uint8_t channelId,
+bool VideoChannelHandler::handleMessageFromClient(int clientId,
+                                                  uint8_t channelId,
                                                   bool specific,
                                                   const vector<uint8_t> &data) {
   uint8_t flags = EncryptionType::Encrypted | FrameType::Bulk;
@@ -95,7 +96,7 @@ bool VideoChannelHandler::handleMessageFromClient(uint8_t channelId,
     return true;
   } else if (msgType == 0x01) {
     openChannel();
-    sendToClient(channelId, false, {0xff});
+    sendToClient(clientId, channelId, false, {0xff});
     return true;
   } else {
     return false;

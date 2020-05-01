@@ -17,9 +17,10 @@ class VideoChannelHandler : public ChannelHandler {
 
 public:
   VideoChannelHandler(uint8_t channelId);
-  virtual void disconnected();
+  virtual void disconnected(int clientId);
   virtual bool handleMessageFromHeadunit(const Message &message);
-  virtual bool handleMessageFromClient(uint8_t channelId, bool specific,
+  virtual bool handleMessageFromClient(int clientId, uint8_t channelId,
+                                       bool specific,
                                        const std::vector<uint8_t> &data);
   virtual ~VideoChannelHandler();
 };

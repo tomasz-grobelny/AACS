@@ -79,13 +79,13 @@ public:
   AaCommunicator(const Library &_lib);
   void setup(const Udc &udc);
   boost::signals2::signal<void(const std::exception &ex)> error;
-  boost::signals2::signal<void(uint8_t channelNumber, bool specific,
+  boost::signals2::signal<void(int clientId, uint8_t channelNumber, bool specific,
                                std::vector<uint8_t> data)>
       gotMessage;
   uint8_t getChannelNumberByChannelType(ChannelType ct);
-  void sendToChannel(uint8_t channelNumber, bool specific,
+  void sendToChannel(int clientId, uint8_t channelNumber, bool specific,
                      const std::vector<uint8_t> &data);
-  void disconnected();
+  void disconnected(int clientId);
   std::vector<uint8_t> getServiceDescriptor();
 
   ~AaCommunicator();
