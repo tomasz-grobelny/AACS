@@ -1,4 +1,5 @@
 #pragma once
+#include "ChannelHandler.h"
 #include "Device.h"
 #include "Message.h"
 #include <boost/signals2.hpp>
@@ -65,7 +66,7 @@ class AaCommunicator {
   void expectVersionResponse();
   void sendAuthComplete();
   void handleServiceDiscoveryRequest(const Message &msg);
-  void handleChannelOpenRequest(const Message &msg);
+  void handleChannelMessage(const Message &msg);
   void forwardChannelMessage(const Message &msg);
 
   const std::vector<uint8_t> &serviceDescription;
@@ -77,6 +78,8 @@ class AaCommunicator {
   void writeToUsb(const std::vector<uint8_t> &buffer);
   std::vector<uint8_t> prepareMessage();
   std::vector<std::thread> threads;
+
+  ChannelHandler *channelHandlers[UINT8_MAX];
 
 public:
   AaCommunicator(const Device &device,

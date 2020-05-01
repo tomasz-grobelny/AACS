@@ -1,7 +1,10 @@
 #include "AaCommunicator.h"
+#include "DefaultChannelHandler.h"
 #include "Device.h"
 #include "Library.h"
 #include "Message.h"
+#include "ServiceDiscoveryResponse.pb.h"
+#include "VideoChannelHandler.h"
 #include "utils.h"
 #include <cstdint>
 #include <iterator>
@@ -71,10 +74,8 @@ void AaCommunicator::setup() {
     auto msgType = (msg.content[0] << 8 | msg.content[1]);
     if (msgType == MessageType::ServiceDiscoveryRequest) {
       handleServiceDiscoveryRequest(msg);
-    } else if (msgType == MessageType::ChannelOpenRequest) {
-      handleChannelOpenRequest(msg);
     } else if (msg.channel != 0) {
-      forwardChannelMessage(msg);
+      handleChannelMessage(msg);
     } else if (msgType == MessageType::AudioFocusRequest) {
       forwardChannelMessage(msg);
     } else if (msgType == MessageType::NavigationFocusRequest) {
@@ -92,22 +93,45 @@ void AaCommunicator::handleServiceDiscoveryRequest(const Message &msg) {
   pushBackInt16(message, MessageType::ServiceDiscoveryResponse);
   copy(serviceDescription.begin(), serviceDescription.end(),
        back_inserter(message));
+
+  tag::aas::ServiceDiscoveryResponse sdr;
+  sdr.ParseFromArray(serviceDescription.data(), serviceDescription.size());
+  for (auto ch : sdr.channels()) {
+    if (ch.has_media_channel() &&
+        ch.media_channel().media_type() ==
+            tag::aas::MediaStreamType_Enum::MediaStreamType_Enum_Video) {
+      // channelTypeToChannelNumber[ChannelType::Video] = ch.channel_id();
+      channelHandlers[ch.channel_id()] =
+          new VideoChannelHandler(ch.channel_id());
+    } else {
+      channelHandlers[ch.channel_id()] =
+          new DefaultChannelHandler(ch.channel_id());
+    }
+    channelHandlers[ch.channel_id()]->sendToServer.connect(
+        [this](uint8_t channelNumber, bool specific,
+               const std::vector<uint8_t> &data) {
+          channelMessage(channelNumber, specific, data);
+        });
+    channelHandlers[ch.channel_id()]->sendToMobile.connect(
+        [this](uint8_t channelNumber, uint8_t flags,
+               const std::vector<uint8_t> &data) {
+          sendMessage(channelNumber, flags, data);
+        });
+  }
   sendMessage(0,
               EncryptionType::Encrypted | FrameType::Bulk |
                   MessageTypeFlags::Control,
               message);
 }
 
-void AaCommunicator::handleChannelOpenRequest(const Message &msg) {
-  channelMessage(msg.channel, msg.flags & MessageTypeFlags::Specific,
-                 msg.content);
-  // cout << "COR: " << (int)msg.channel << endl;
+void AaCommunicator::handleChannelMessage(const Message &msg) {
+  channelHandlers[msg.channel]->handleMessageFromMobile(msg.channel, msg.flags,
+                                                        msg.content);
 }
 
 void AaCommunicator::forwardChannelMessage(const Message &msg) {
   channelMessage(msg.channel, msg.flags & MessageTypeFlags::Specific,
                  msg.content);
-  // cout << "other: " << (int)msg.channel << endl;
 }
 
 void AaCommunicator::sendAuthComplete() {
@@ -225,12 +249,7 @@ void AaCommunicator::expectVersionResponse() {
 
 void AaCommunicator::sendMessagePublic(uint8_t channel, bool specific,
                                        const std::vector<uint8_t> &buf) {
-  // cout << "sendMessage" << endl;
-  uint8_t flags = EncryptionType::Encrypted | FrameType::Bulk;
-  if (specific) {
-    flags |= MessageTypeFlags::Specific;
-  }
-  sendMessage(channel, flags, buf);
+  channelHandlers[channel]->handleMessageFromServer(channel, specific, buf);
 }
 
 void AaCommunicator::sendMessage(uint8_t channel, uint8_t flags,
