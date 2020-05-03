@@ -2,6 +2,7 @@
 
 #include "VideoChannelHandler.h"
 #include "ChannelHandler.h"
+#include "enums.h"
 #include "utils.h"
 #include <iostream>
 
@@ -88,17 +89,19 @@ bool VideoChannelHandler::handleMessageFromClient(int clientId,
     flags |= MessageTypeFlags::Specific;
   }
   auto msgType = data[0];
-  if (msgType == 0x00) {
-    // raw data
-    vector<uint8_t> msgToHeadunit;
-    copy(data.begin() + 1, data.end(), back_inserter(msgToHeadunit));
-    sendToHeadunit(channelId, flags, msgToHeadunit);
-    return true;
-  } else if (msgType == 0x01) {
+  if (msgType == 0x02) {
     openChannel();
-    sendToClient(clientId, channelId, false, {0xff});
+    vector<uint8_t> msgToHeadunit;
+    pushBackInt16(msgToHeadunit, MediaMessageType::MediaIndication);
+    copy(data.begin() + 2, data.end(), back_inserter(msgToHeadunit));
+    sendToHeadunit(channelId, EncryptionType::Encrypted | FrameType::Bulk, msgToHeadunit);
     return true;
-  } else {
-    return false;
+  } else if (msgType == 0x03) {
+    vector<uint8_t> msgToHeadunit;
+    pushBackInt16(msgToHeadunit, MediaMessageType::MediaWithTimestampIndication);
+    copy(data.begin() + 1, data.end(), back_inserter(msgToHeadunit));
+    sendToHeadunit(channelId, EncryptionType::Encrypted | FrameType::Bulk, msgToHeadunit);
+    return true;
   }
+  return false;
 }

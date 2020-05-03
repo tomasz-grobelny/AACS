@@ -18,6 +18,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
     ../proto/ChannelOpenRequest.proto
     ../proto/ServiceDiscoveryRequest.proto
     ../proto/ServiceDiscoveryResponse.proto
+    ../proto/MediaChannelSetupResponse.proto
 )
 
 add_executable(AAClient main.cpp 
