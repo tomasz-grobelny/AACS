@@ -1,6 +1,8 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
 #include "SocketClient.h"
+#include "utils.h"
+#include <asm-generic/errno.h>
 #include <cstddef>
 
 using namespace std;
@@ -53,6 +55,12 @@ void SocketClient::clientThreadMethod() {
 
 void SocketClient::sendMessage(const std::vector<uint8_t> &msg) {
   auto ret = write(fd, msg.data(), msg.size());
-  if (ret != msg.size())
-    throw runtime_error("sendMessage failed");
+  if (ret != msg.size()) {
+    if (ret == -1 && errno == ECONNRESET) {
+      throw client_disconnected_error();
+    } else {
+      throw runtime_error("sendMessage failed: " + to_string(ret) +
+                          " errno=" + to_string(errno));
+    }
+  }
 }

@@ -9,7 +9,9 @@
 #include "PacketType.h"
 #include "SocketCommunicator.h"
 #include "Udc.h"
+#include "utils.h"
 #include <csignal>
+#include <gst/gst.h>
 #include <iostream>
 #include <iterator>
 #include <stdexcept>
@@ -25,8 +27,9 @@ void signal_handler(int signal) {
   std::signal(SIGINT, SIG_DFL);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   signal(SIGINT, signal_handler);
+  gst_init(&argc, &argv);
   try {
     Library lib(configFsBasePath);
     ModeSwitcher::handleSwitchToAccessoryMode(lib);
@@ -50,7 +53,10 @@ int main() {
       copy(data.begin(), data.end(), back_inserter(msg));
       for (auto cl : clients) {
         if (cl.second == clientId || clientId == -1)
+          try {
           cl.first->sendMessage(msg);
+          } catch (client_disconnected_error &cde) {
+          }
       }
     });
     SocketCommunicator sc("./socket");
@@ -61,13 +67,12 @@ int main() {
       cout << "connect: " << clients[scl] << endl;
       scl->gotPacket.connect([&aac, scl, &pi, &clients](const Packet &p) {
         if (p.packetType == PacketType::GetChannelNumberByChannelType) {
-          cout << "open channel: " << (int)p.channelNumber << endl;
           auto channelId =
               aac.getChannelNumberByChannelType((ChannelType)p.channelNumber);
+          cout << "get channel: " << (int)p.channelNumber << "->"
+               << (int)channelId << endl;
           scl->sendMessage({channelId});
         } else if (p.packetType == PacketType::RawData) {
-          cout << pi++ << " data from phone: " << (int)p.channelNumber << " "
-               << (int)p.specific << " " << p.data.size() << endl;
           aac.sendToChannel(clients[scl], p.channelNumber, p.specific, p.data);
         } else if (p.packetType == PacketType::GetServiceDescriptor) {
           cout << "get service descriptor" << endl;
