@@ -128,8 +128,8 @@ void AaCommunicator::handleChannelMessage(const Message &message) {
         throw std::runtime_error("Unknown packet");
       }
     } else {
-      gotMessage(-1, message.channel, message.flags & MessageTypeFlags::Specific,
-                 msg);
+      gotMessage(-1, message.channel,
+                 message.flags & MessageTypeFlags::Specific, msg);
     }
   }
   cv.notify_all();
@@ -396,6 +396,7 @@ AaCommunicator::AaCommunicator(const Library &_lib) : lib(_lib) {
   initializeSslContext();
   fill_n(channelTypeToChannelNumber, ChannelType::MaxValue, -1);
   fill_n(channelHandlers, UINT8_MAX, nullptr);
+  channelHandlers[0] = new DefaultChannelHandler(0);
 }
 
 void AaCommunicator::setup(const Udc &udc) {

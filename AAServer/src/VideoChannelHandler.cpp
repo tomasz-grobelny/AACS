@@ -13,6 +13,14 @@
 
 using namespace std;
 
+#define GSTCHECK(x) GstCheck(x, __LINE__)
+
+static void GstCheck(gboolean returnCode, int line) {
+  if (returnCode != TRUE)
+    throw runtime_error("GStreamer function call failed at line " +
+                        to_string(line));
+}
+
 GstFlowReturn VideoChannelHandler::new_sample(GstElement *sink,
                                               VideoChannelHandler *_this) {
   static bool firstSample = true;
@@ -72,27 +80,40 @@ VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
 
   auto queue = gst_element_factory_make("queue", "queue");
   auto videoconvert = gst_element_factory_make("videoconvert", "videoconvert");
+  auto videoscale = gst_element_factory_make("videoscale", "videoscale");
   auto x264enc = gst_element_factory_make("x264enc", "x264enc");
   g_object_set(x264enc, "speed-preset", 1, NULL);
   auto h264caps = gst_caps_new_simple(
       "video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "profile",
-      G_TYPE_STRING, "baseline", "width", G_TYPE_INT, 720, "height", G_TYPE_INT,
+      G_TYPE_STRING, "baseline", "width", G_TYPE_INT, 800, "height", G_TYPE_INT,
       480, "framerate", GST_TYPE_FRACTION, 30, 1, NULL);
-  gst_bin_add_many(GST_BIN(pipeline), videotestsrc, inputSelector, queue,
-                   videoconvert, x264enc, app_sink, NULL);
+  auto rawcaps = gst_caps_new_simple("video/x-raw", "width", G_TYPE_INT, 800,
+                                     "height", G_TYPE_INT, 480, "framerate",
+                                     GST_TYPE_FRACTION, 30, 1, NULL);
+  auto capsfilter_pre =
+      gst_element_factory_make("capsfilter", "capsfilter_pre");
+  g_object_set(capsfilter_pre, "caps", rawcaps, NULL);
+  auto capsfilter_post =
+      gst_element_factory_make("capsfilter", "capsfilter_post");
+  g_object_set(capsfilter_post, "caps", rawcaps, NULL);
+
+  gst_bin_add_many(GST_BIN(pipeline), videotestsrc, videoconvert, videoscale,
+                   capsfilter_pre, inputSelector, capsfilter_post, queue,
+                   x264enc, app_sink, NULL);
+
+  GSTCHECK(gst_element_link_many(videotestsrc, videoconvert, videoscale,
+                                 capsfilter_pre, NULL));
 
   sink_request_pad = gst_element_get_request_pad(inputSelector, "sink_%u");
-  auto src_static_pad = gst_element_get_static_pad(videotestsrc, "src");
+  auto src_static_pad = gst_element_get_static_pad(capsfilter_pre, "src");
 
   if (gst_pad_link(src_static_pad, sink_request_pad) != GST_PAD_LINK_OK)
-    throw runtime_error("gst_element_link 12 failed");
-  if (gst_element_link(inputSelector, queue) != TRUE)
-    throw runtime_error("gst_element_link 11 failed");
-  if (gst_element_link(queue, x264enc) != TRUE)
-    throw runtime_error("gst_element_link 11 failed");
-  if (gst_element_link_filtered(x264enc, app_sink, h264caps) != TRUE)
-    throw runtime_error("gst_element_link 6 failed");
+    throw runtime_error("gst_pad_link VideoChannelHandler failed");
+  GSTCHECK(gst_element_link_many(inputSelector, capsfilter_post, queue, x264enc,
+                                 NULL));
+  GSTCHECK(gst_element_link_filtered(x264enc, app_sink, h264caps));
   gst_caps_unref(h264caps);
+  gst_caps_unref(rawcaps);
 
   auto bus = gst_element_get_bus(pipeline);
   gst_bus_add_signal_watch(bus);
@@ -121,15 +142,26 @@ void VideoChannelHandler::createAppSource(int clientId, uint8_t priority) {
   auto avdec_h264 = gst_element_factory_make(
       "avdec_h264", ("avdec_h264_" + to_string(clientId)).c_str());
 
-  gst_bin_add_many(GST_BIN(pipeline), app_source, h264parse, avdec_h264, NULL);
-  if (gst_element_link(app_source, h264parse) != TRUE)
-    throw runtime_error("gst_element_link 7 failed");
-  if (gst_element_link(h264parse, avdec_h264) != TRUE)
-    throw runtime_error("gst_element_link 8 failed");
+  auto videoscale = gst_element_factory_make(
+      "videoscale", ("videoscale_" + to_string(clientId)).c_str());
+  auto videorate = gst_element_factory_make(
+      "videorate", ("videorate_" + to_string(clientId)).c_str());
+
+  auto rawcaps = gst_caps_new_simple("video/x-raw", "width", G_TYPE_INT, 800,
+                                     "height", G_TYPE_INT, 480, "framerate",
+                                     GST_TYPE_FRACTION, 30, 1, NULL);
+  auto capsfilter_pre = gst_element_factory_make(
+      "capsfilter", ("capsfilter_pre_" + to_string(clientId)).c_str());
+
+  gst_bin_add_many(GST_BIN(pipeline), app_source, h264parse, avdec_h264,
+                   videoscale, videorate, capsfilter_pre, NULL);
+  GSTCHECK(gst_element_link_many(app_source, h264parse, avdec_h264, videoscale,
+                                 videorate, capsfilter_pre, NULL));
+
   auto sink_request_pad = gst_element_get_request_pad(inputSelector, "sink_%u");
-  auto src_static_pad = gst_element_get_static_pad(avdec_h264, "src");
+  auto src_static_pad = gst_element_get_static_pad(capsfilter_pre, "src");
   if (gst_pad_link(src_static_pad, sink_request_pad) != GST_PAD_LINK_OK)
-    throw runtime_error("gst_element_link 9 failed");
+    throw runtime_error("gst_pad_link createAppSource failed");
 
   g_object_set(inputSelector, "active-pad", sink_request_pad, NULL);
   clientData[clientId].app_source = app_source;

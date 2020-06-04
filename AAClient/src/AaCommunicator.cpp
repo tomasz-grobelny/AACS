@@ -61,7 +61,7 @@ void AaCommunicator::setup() {
   cout << "ssl handshake complete" << endl;
   sendAuthComplete();
   int faultCount = 0;
-  for (; faultCount < 10;) {
+  for (; faultCount < 30;) {
     Message msg;
     try {
       msg = getMessage();
@@ -69,6 +69,7 @@ void AaCommunicator::setup() {
     } catch (runtime_error &ex) {
       cout << "E: " << ex.what() << endl;
       faultCount++;
+      sleep(1);
       continue;
     }
     auto msgType = (msg.content[0] << 8 | msg.content[1]);
