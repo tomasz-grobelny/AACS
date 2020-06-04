@@ -2,6 +2,7 @@
 #include "ChannelHandler.h"
 #include "Device.h"
 #include "Message.h"
+#include "enums.h"
 #include <boost/signals2.hpp>
 #include <condition_variable>
 #include <deque>
@@ -12,39 +13,6 @@
 #include <thread>
 
 class AaCommunicator {
-  enum EncryptionType {
-    Plain = 0,
-    Encrypted = 1 << 3,
-  };
-
-  enum FrameType {
-    First = 1,
-    Last = 2,
-    Bulk = First | Last,
-  };
-
-  enum MessageTypeFlags {
-    Control = 0,
-    Specific = 1 << 2,
-  };
-
-  enum MessageType {
-    VersionRequest = 1,
-    VersionResponse = 2,
-    SslHandshake = 3,
-    AuthComplete = 4,
-    ServiceDiscoveryRequest = 5,
-    ServiceDiscoveryResponse = 6,
-    ChannelOpenRequest = 7,
-    ChannelOpenResponse = 8,
-    PingRequest = 0xb,
-    PingResponse = 0xc,
-    NavigationFocusRequest = 0x0d,
-    NavigationFocusResponse = 0x0e,
-    AudioFocusRequest = 0x12,
-    AudioFocusResponse = 0x13,
-  };
-
   const Device &device;
   std::unique_ptr<libusb_device_handle, void (*)(libusb_device_handle *)>
       deviceHandle;

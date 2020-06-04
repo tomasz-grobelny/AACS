@@ -6,6 +6,7 @@
 #include "ServiceDiscoveryResponse.pb.h"
 #include "VideoChannelHandler.h"
 #include "utils.h"
+#include <boost/range/algorithm.hpp>
 #include <cstdint>
 #include <iterator>
 #include <memory>
@@ -73,13 +74,15 @@ void AaCommunicator::setup() {
       continue;
     }
     auto msgType = (msg.content[0] << 8 | msg.content[1]);
+    vector<MessageType> forwardedMessageTypes = {
+        MessageType::AudioFocusRequest, MessageType::NavigationFocusRequest,
+        MessageType::VoiceSessionRequest};
     if (msgType == MessageType::ServiceDiscoveryRequest) {
       handleServiceDiscoveryRequest(msg);
     } else if (msg.channel != 0) {
       handleChannelMessage(msg);
-    } else if (msgType == MessageType::AudioFocusRequest) {
-      forwardChannelMessage(msg);
-    } else if (msgType == MessageType::NavigationFocusRequest) {
+    } else if (boost::range::find(forwardedMessageTypes, msgType) !=
+               forwardedMessageTypes.end()) {
       forwardChannelMessage(msg);
     } else {
       throw runtime_error("unexpected message: " + to_string(msg.channel) +

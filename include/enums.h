@@ -31,6 +31,7 @@ enum MessageType {
   PingResponse = 0xc,
   NavigationFocusRequest = 0x0d,
   NavigationFocusResponse = 0x0e,
+  VoiceSessionRequest = 0x11,
   AudioFocusRequest = 0x12,
   AudioFocusResponse = 0x13,
 };
