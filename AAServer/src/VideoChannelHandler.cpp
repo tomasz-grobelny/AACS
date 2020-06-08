@@ -146,17 +146,21 @@ void VideoChannelHandler::createAppSource(int clientId, uint8_t priority) {
       "videoscale", ("videoscale_" + to_string(clientId)).c_str());
   auto videorate = gst_element_factory_make(
       "videorate", ("videorate_" + to_string(clientId)).c_str());
+  auto videoconvert = gst_element_factory_make(
+      "videoconvert", ("videoconvert_" + to_string(clientId)).c_str());
 
   auto rawcaps = gst_caps_new_simple("video/x-raw", "width", G_TYPE_INT, 800,
                                      "height", G_TYPE_INT, 480, "framerate",
                                      GST_TYPE_FRACTION, 30, 1, NULL);
   auto capsfilter_pre = gst_element_factory_make(
       "capsfilter", ("capsfilter_pre_" + to_string(clientId)).c_str());
+  g_object_set(capsfilter_pre, "caps", rawcaps, NULL);
 
   gst_bin_add_many(GST_BIN(pipeline), app_source, h264parse, avdec_h264,
-                   videoscale, videorate, capsfilter_pre, NULL);
+                   videoscale, videorate, videoconvert, capsfilter_pre, NULL);
   GSTCHECK(gst_element_link_many(app_source, h264parse, avdec_h264, videoscale,
-                                 videorate, capsfilter_pre, NULL));
+                                 videorate, videoconvert, capsfilter_pre,
+                                 NULL));
 
   auto sink_request_pad = gst_element_get_request_pad(inputSelector, "sink_%u");
   auto src_static_pad = gst_element_get_static_pad(capsfilter_pre, "src");
