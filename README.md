@@ -19,20 +19,8 @@ The software is being developed on:
 * kernel 5.x - stock 4.9.x version has issues with gadget support
 * latest git version of libusbgx (https://github.com/kopasiak/libusbgx)
 
-# Development
-Development tools used:
-* cmake
-* clang
-* Visual Studio Code, plugins:
-    * Remote-SSH
-    * Clang-Format
-    * CMake
-    * CMake Tools
-    * Native Debug
-    * vscode-clangd
-    * Prettier - Code formatter
-
-Client Visual Studio Code can run both Windows and Linux.
+# Installation
+Instructions how to set up runtime and development environment can be found in the [installation instructions document](doc/INSTALL.md).
 
 # Design
 Android Auto Protocol is not documented. However, it has been reverse engineered and open source implementation exists (see https://github.com/opencardev/openauto). While this code does not use a single line from openauto (except for headunit key/cert), openauto is extremenly useful while developing and testing AACS.
@@ -52,5 +40,5 @@ So what exactly could be displayed on headunit? Here are a few ideas:
 # Status
 Currently AACS can do the following:
 * it can act as proxy for Android Auto traffic,
-* stream any content to the headunit,
+* stream any video content to the headunit,
 * ...stay tuned for more.
