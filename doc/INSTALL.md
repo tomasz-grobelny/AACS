@@ -1,16 +1,13 @@
-Overview
-========
+# Overview
 This document describes how to install AACS and Anbox on Odroid N2. Note that this is mainly for development purposes, not end-user usage.
 
-Prerequisites
-=============
+# Prerequisites
 The following hardware items are needed to follow this document:
 1. Odroid N2
 2. MicroSDHC card reader
 3. MicroSDHC card (I used 32GB)
 
-Steps
-=====
+# Steps
 Follow these steps to get AACS and Anbox running on Odroid N2:
 1. Download image from http://de.eu.odroid.in/ubuntu_20.04lts/n2/ubuntu-20.04-4.9-minimal-odroid-n2-20200715.img.xz
 1. On Windows use https://www.balena.io/etcher/, on Linux use unpack and then dd the flash image to sd card.
@@ -27,3 +24,19 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. cd AAVideoSink && mkdir build && cd build && cmake .. && make && cd ../..
 1. cd ~/ && git clone https://github.com/anbox/anbox.git && cd anbox && mkdir build && cd build && cmake .. && make
 1. More steps to follow (stay tuned)
+
+
+# Development tools
+Development tools used:
+* cmake
+* clang
+* Visual Studio Code, plugins:
+    * Remote-SSH
+    * Clang-Format
+    * CMake
+    * CMake Tools
+    * Native Debug
+    * vscode-clangd
+    * Prettier - Code formatter
+
+Client Visual Studio Code can run both Windows and Linux.
