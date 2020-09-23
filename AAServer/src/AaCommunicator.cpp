@@ -6,6 +6,7 @@
 #include "Configuration.h"
 #include "DefaultChannelHandler.h"
 #include "FfsFunction.h"
+#include "InputChannelHandler.h"
 #include "MediaStreamType.pb.h"
 #include "Message.h"
 #include "ServiceDiscoveryRequest.pb.h"
@@ -89,6 +90,10 @@ void AaCommunicator::handleServiceDiscoveryResponse(const void *buf,
       channelTypeToChannelNumber[ChannelType::Video] = ch.channel_id();
       channelHandlers[ch.channel_id()] =
           new VideoChannelHandler(ch.channel_id());
+    } else if (ch.has_input_channel()) {
+      channelTypeToChannelNumber[ChannelType::Input] = ch.channel_id();
+      channelHandlers[ch.channel_id()] =
+          new InputChannelHandler(ch.channel_id());
     } else {
       channelHandlers[ch.channel_id()] =
           new DefaultChannelHandler(ch.channel_id());

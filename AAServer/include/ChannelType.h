@@ -1,3 +1,3 @@
 #pragma once
 
-enum ChannelType { Video, MaxValue };
+enum ChannelType { Video, Input, MaxValue };

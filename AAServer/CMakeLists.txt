@@ -22,6 +22,8 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
     ../proto/ChannelOpenRequest.proto
     ../proto/ServiceDiscoveryRequest.proto
     ../proto/ServiceDiscoveryResponse.proto
+    ../proto/InputChannel.proto
+    ../proto/TouchConfig.proto
 )
 
 add_executable(AAServer main.cpp 
@@ -43,6 +45,7 @@ add_executable(AAServer main.cpp
     src/ChannelHandler.cpp
     src/DefaultChannelHandler.cpp
     src/VideoChannelHandler.cpp
+    src/InputChannelHandler.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
 )

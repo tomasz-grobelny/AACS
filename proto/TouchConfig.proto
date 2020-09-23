@@ -1,0 +1,11 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message TouchConfig
+{
+    required uint32 width = 1;
+    required uint32 height = 2;
+}

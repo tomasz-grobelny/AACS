@@ -1,0 +1,13 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+import "TouchEvent.proto";
+
+message InputEvent
+{
+    required uint64 timestamp = 1;
+    optional TouchEvent touch_event = 3;
+}

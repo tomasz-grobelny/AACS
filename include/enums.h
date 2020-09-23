@@ -45,3 +45,10 @@ enum MediaMessageType {
   MediaAckIndication = 0x8004,
   VideoFocusIndication = 0x8008,
 };
+
+enum InputChannelMessageType {
+  None = 0,
+  Event = 0x8001,
+  HandshakeRequest = 0x8002,
+  HandshakeResponse = 0x8003,
+};

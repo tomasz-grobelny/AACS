@@ -1,0 +1,14 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+import "TouchAction.proto";
+import "TouchLocation.proto";
+
+message TouchEvent
+{
+    repeated TouchLocation touch_location = 1;
+    required TouchAction touch_action = 3;
+}

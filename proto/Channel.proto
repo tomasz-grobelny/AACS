@@ -4,10 +4,12 @@ syntax="proto2";
 
 package tag.aas;
 
+import "InputChannel.proto";
 import "MediaChannel.proto";
 
 message Channel
 {
     required uint32 channel_id = 1;
     optional MediaChannel media_channel = 3;
+    optional InputChannel input_channel = 4;
 }
