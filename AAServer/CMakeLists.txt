@@ -48,8 +48,10 @@ add_executable(AAServer main.cpp
     src/InputChannelHandler.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
+    ${BACKWARD_ENABLE}
 )
 
+add_backward(AAServer)
 target_link_libraries(AAServer Threads::Threads)
 target_link_libraries(AAServer Boost::filesystem)
 target_link_libraries(AAServer PkgConfig::LIBUSBGX)

@@ -83,7 +83,7 @@ VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
   auto videoscale = gst_element_factory_make("videoscale", "videoscale");
   auto videorate = gst_element_factory_make("videorate", "videorate");
   auto x264enc = gst_element_factory_make("x264enc", "x264enc");
-  g_object_set(x264enc, "speed-preset", 1, NULL);
+  g_object_set(x264enc, "speed-preset", 1, "key-int-max", 25, NULL);
   auto h264caps = gst_caps_new_simple(
       "video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "profile",
       G_TYPE_STRING, "baseline", "width", G_TYPE_INT, 800, "height", G_TYPE_INT,
@@ -186,7 +186,6 @@ void VideoChannelHandler::openChannel() {
   gotSetupResponse = false;
   sendSetupRequest();
   expectSetupResponse();
-  sendStartIndication();
 }
 
 void VideoChannelHandler::disconnected(int clientId) {
@@ -254,6 +253,7 @@ bool VideoChannelHandler::handleMessageFromHeadunit(const Message &message) {
       gotSetupResponse = true;
       messageHandled = true;
     } else if (messageType == MediaMessageType::VideoFocusIndication) {
+      sendStartIndication();
       messageHandled = true;
     } else if (messageType == MediaMessageType::MediaAckIndication) {
       messageHandled = true;

@@ -1,5 +1,6 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
+#include "backward.hpp"
 #include <stdexcept>
 #include <string>
 #include <sys/stat.h>
@@ -26,4 +27,14 @@ uint64_t bytesToUInt64(const std::vector<uint8_t> &vec, int offset);
 class client_disconnected_error : public std::runtime_error {
 public:
   client_disconnected_error() : runtime_error("client disconnected error") {}
+};
+
+class aa_runtime_error : public std::runtime_error {
+  backward::StackTrace st;
+
+public:
+  aa_runtime_error(const std::string &error) : runtime_error(error) {
+    st.load_here(32);
+  }
+  void printTrace(std::ostream &ostr) const;
 };

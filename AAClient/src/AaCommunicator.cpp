@@ -1,6 +1,7 @@
 #include "AaCommunicator.h"
 #include "DefaultChannelHandler.h"
 #include "Device.h"
+#include "InputChannelHandler.h"
 #include "Library.h"
 #include "Message.h"
 #include "ServiceDiscoveryResponse.pb.h"
@@ -33,6 +34,17 @@ AaCommunicator::AaCommunicator(const Device &dev,
     : device(dev), serviceDescription(sd),
       deviceHandle(getHandle(dev), [](auto *device) { libusb_close(device); }) {
   initializeSslContext();
+  channelHandlers[0] = new DefaultChannelHandler(0);
+  channelHandlers[0]->sendToServer.connect(
+      [this](uint8_t channelNumber, bool specific,
+             const std::vector<uint8_t> &data) {
+        channelMessage(channelNumber, specific, data);
+      });
+  channelHandlers[0]->sendToMobile.connect(
+      [this](uint8_t channelNumber, uint8_t flags,
+             const std::vector<uint8_t> &data) {
+        sendMessage(channelNumber, flags, data);
+      });
 }
 
 AaCommunicator::~AaCommunicator() {}
@@ -104,9 +116,11 @@ void AaCommunicator::handleServiceDiscoveryRequest(const Message &msg) {
     if (ch.has_media_channel() &&
         ch.media_channel().media_type() ==
             tag::aas::MediaStreamType_Enum::MediaStreamType_Enum_Video) {
-      // channelTypeToChannelNumber[ChannelType::Video] = ch.channel_id();
       channelHandlers[ch.channel_id()] =
           new VideoChannelHandler(ch.channel_id());
+    } else if (ch.has_input_channel()) {
+      channelHandlers[ch.channel_id()] =
+          new InputChannelHandler(ch.channel_id());
     } else {
       channelHandlers[ch.channel_id()] =
           new DefaultChannelHandler(ch.channel_id());

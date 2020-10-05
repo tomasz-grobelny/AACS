@@ -8,6 +8,7 @@
 #include <string>
 #include <usbg/usbg.h>
 #include <vector>
+//#include "backward.hpp"
 
 using namespace std;
 
@@ -27,7 +28,7 @@ ssize_t checkError(ssize_t ret, const std::vector<int> &ignoredErrors) {
              ignoredErrors.end()) {
     return 0;
   } else {
-    throw std::runtime_error("checkError");
+    throw aa_runtime_error("checkError: " + to_string(ret));
   }
 }
 
@@ -70,4 +71,12 @@ uint64_t bytesToUInt64(const std::vector<uint8_t> &vec, int offset) {
          ((uint64_t)vec[offset + 2] << 40) | ((uint64_t)vec[offset + 3] << 32) |
          ((uint64_t)vec[offset + 4] << 24) | ((uint64_t)vec[offset + 5] << 16) |
          ((uint64_t)vec[offset + 6] << 8) | ((uint64_t)vec[offset + 7] << 0);
+}
+
+void aa_runtime_error::printTrace(std::ostream &ostr) const {
+  backward::Printer p;
+  p.object = true;
+  p.color_mode = backward::ColorMode::always;
+  p.address = true;
+  p.print(st, ostr);
 }

@@ -9,4 +9,6 @@ enum TouchAction
     Press = 0;
     Release = 1;
     Drag = 2;
+    Down = 5;
+    Up = 6;
 }

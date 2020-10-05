@@ -142,6 +142,10 @@ void AaCommunicator::handleChannelMessage(const Message &message) {
 
 void AaCommunicator::sendToChannel(int clientId, uint8_t channelNumber,
                                    bool specific, const vector<uint8_t> &data) {
+  if (channelHandlers[channelNumber] == nullptr) {
+    throw std::runtime_error("No handler for channel " +
+                             to_string(channelNumber));
+  }
   channelHandlers[channelNumber]->handleMessageFromClient(
       clientId, channelNumber, specific, data);
 }
@@ -402,6 +406,15 @@ AaCommunicator::AaCommunicator(const Library &_lib) : lib(_lib) {
   fill_n(channelTypeToChannelNumber, ChannelType::MaxValue, -1);
   fill_n(channelHandlers, UINT8_MAX, nullptr);
   channelHandlers[0] = new DefaultChannelHandler(0);
+  channelHandlers[0]->sendToClient.connect(
+      [this](int clientId, uint8_t channelNumber, bool specific,
+             std::vector<uint8_t> data) {
+        gotMessage(clientId, channelNumber, specific, data);
+      });
+  channelHandlers[0]->sendToHeadunit.connect(
+      [this](uint8_t channelNumber, uint8_t flags, std::vector<uint8_t> data) {
+        sendMessage(channelNumber, flags, data);
+      });
 }
 
 void AaCommunicator::setup(const Udc &udc) {

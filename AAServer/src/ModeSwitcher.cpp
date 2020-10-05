@@ -28,10 +28,15 @@ ssize_t ModeSwitcher::handleSwitchMessage(int fd, const void *buf,
         auto ret = write(fd, "\002\000", 2);
         std::cout << "Got 51, write=" << ret << std::endl;
       } else if (setup.bRequest == 52) {
-        std::cout << "Got some info :-)" << std::endl;
+        std::cout << "Got some info: " << setup.wIndex << "=";
+        if (setup.wLength < nbytes) {
+          std::cout << std::endl;
+        }
       } else if (setup.bRequest == 53) {
         std::cout << "Got 53, exit" << std::endl;
       }
+    } else {
+      std::cout << std::string((char *)buf, nbytes) << std::endl;
     }
   }
   return nbytes;

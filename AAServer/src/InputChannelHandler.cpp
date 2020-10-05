@@ -53,6 +53,7 @@ bool InputChannelHandler::handleMessageFromClient(int clientId,
                                                   const vector<uint8_t> &data) {
   registered_clients.insert(clientId);
   ChannelHandler::openChannel();
+  gotHandshakeResponse = false;
   sendHandshakeRequest();
   expectHandshakeResponse();
   return true;

@@ -32,6 +32,7 @@ add_executable(AAClient main.cpp
     src/ChannelHandler.cpp
     src/DefaultChannelHandler.cpp
     src/VideoChannelHandler.cpp
+    src/InputChannelHandler.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
     )

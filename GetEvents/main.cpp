@@ -15,7 +15,7 @@ using namespace std;
 uint8_t openChannel(int aaServerFd) {
   uint8_t buffer[3];
   buffer[0] = 0; // packet type == GetChannelNumberByChannelType
-  buffer[1] = 0; // channel type == Video
+  buffer[1] = 1; // channel type == Input
   buffer[2] = 0; // specific?
   if (write(aaServerFd, buffer, sizeof buffer) != sizeof buffer)
     throw runtime_error("failed to write open channel");
@@ -25,7 +25,7 @@ uint8_t openChannel(int aaServerFd) {
     throw runtime_error("failed to read video channel number");
   cout << "channelNumber: " << to_string(channelNumber) << endl;
   buffer[0] = 1; // packet type == Raw
-  buffer[1] = 1; // channel type == Input
+  buffer[1] = channelNumber;
   buffer[2] = 0; // specific? don't care
   if (write(aaServerFd, buffer, sizeof buffer) != sizeof buffer)
     throw runtime_error("failed to write open channel");
@@ -118,22 +118,25 @@ int main(int argc, char **argv) {
       throw runtime_error("failed to read video channel number");
     class tag::aas::InputEvent ie;
     ie.ParseFromArray(buffer + 4, realSize - 4);
-    // cout << ie.DebugString() << endl;
+    cout << "===" << endl;
+    cout << ie.DebugString() << endl;
     if (!ie.has_touch_event())
       continue;
     for (auto tl : ie.touch_event().touch_location()) {
       auto coords = translate_coordinates(disp, window, tl.x(), tl.y());
       cout << "x: " << get<0>(coords) << endl;
       cout << "y: " << get<1>(coords) << endl;
-      // cout << "pid: " << tl.pid() << endl;
+      cout << "pid: " << tl.pid() << endl;
       XTestFakeMotionEvent(disp, 0, get<0>(coords),
                            get<1>(coords) / 480.0 * 600.0, CurrentTime);
     }
-    if (ie.touch_event().touch_action() == tag::aas::TouchAction::Press) {
+    if (ie.touch_event().touch_action() == tag::aas::TouchAction::Press ||
+        ie.touch_event().touch_action() == tag::aas::TouchAction::Down) {
       cout << "press" << endl;
       XTestFakeButtonEvent(disp, 1, True, CurrentTime);
     }
-    if (ie.touch_event().touch_action() == tag::aas::TouchAction::Release) {
+    if (ie.touch_event().touch_action() == tag::aas::TouchAction::Release ||
+        ie.touch_event().touch_action() == tag::aas::TouchAction::Up) {
       cout << "release" << endl;
       XTestFakeButtonEvent(disp, 1, False, CurrentTime);
     }
