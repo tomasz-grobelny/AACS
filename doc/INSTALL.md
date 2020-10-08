@@ -19,7 +19,11 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. apt upgrade && apt install git && apt install libboost1.67-all-dev && apt install libssl-dev && apt install libprotobuf-dev && apt install protobuf-compiler && apt install libgstreamer1.0-dev && apt install libconfig-dev && apt install libusb-1.0-0-dev && apt install libegl-dev &&apt install libgles2-mesa-dev && apt install libsdl2-dev
 1. apt remove libsdl2-2.0-0 && apt install libsdl2-dev && apt install libsdl2-image-dev && apt install liblxc-dev && apt install libproperties-cpp-dev && apt install libsystemd-dev && apt install libcap-dev && apt install libgmock-dev
 1. apt remove python3-distupgrade ubuntu-release-upgrader-core && apt install ubuntu-desktop-minimal
-1. Install kernel 5.4+ according to https://forum.odroid.com/viewtopic.php?f=176&t=33993&p=261833#p261833 (a bit of manual tweaking is needed with FIRST=true) and reboot
+1. Follow steps below (based on https://forum.odroid.com/viewtopic.php?f=176&t=33993&p=261833#p261833) to install 5.9.x+ kernel.
+1. git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+1. cd linux && wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/kernel_config -O .config && wget wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/compile_kernel.sh
+1. chmod +x ./compile_kernel.sh && ./compile_kernel.sh
+1. reboot
 1. mkdir AA && cd AA
 1. git clone https://github.com/tomasz-grobelny/AACS.git && git clone https://github.com/tomasz-grobelny/AAVideoSink.git && git clone https://github.com/libusbgx/libusbgx.git
 1. cd libusbgx && autoreconf -i && ./configure --prefix=/usr && make && make install && cd ..
