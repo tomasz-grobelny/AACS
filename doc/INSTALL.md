@@ -9,15 +9,16 @@ The following hardware items are needed to follow this document:
 
 # Steps
 Follow these steps to get AACS and Anbox running on Odroid N2:
-1. Download image from http://de.eu.odroid.in/ubuntu_20.04lts/n2/ubuntu-20.04-4.9-minimal-odroid-n2-20200715.img.xz
+1. wget http://de.eu.odroid.in/ubuntu_20.04lts/n2/ubuntu-20.04-4.9-minimal-odroid-n2-20200715.img.xz
 1. unxz ubuntu-20.04-4.9-minimal-odroid-n2-20200715.img.xz && partx -v -a ubuntu-20.04-4.9-minimal-odroid-n2-20200715.img
-1. mkdir image && mount /dev/loopXp2 image && rm image/.first_boot && umount image
+1. mkdir image && mount /dev/loopXp2 image && rm -f image/.first_boot && cat image/aafirstboot |sed "s#start)#start)\n\t\tdpkg-reconfigure openssh-server#" > image/aafirstboot.new && rm -f image/aafirstboot && mv image/aafirstboot.new image/aafirstboot && chmod 755 image/aafirstboot && umount image && rmdir image
 1. dd if=ubuntu-20.04-4.9-minimal-odroid-n2-20200715.img of=/dev/sdX bs=1M
 1. Insert card into Odroid N2 and start it.
-1. Find out the IP address of your Odroid N2 (eg. from your router or using 'nmap -sT 192.168.0.* -p 22 -P0') and ssh to it (user: root, password: odroid)
-1. Resize image somewhat if needed. Not the full size yet, just enough to complete following instructions.
-1. apt upgrade && apt install git && apt install libboost1.67-all-dev && apt install libssl-dev && apt install libprotobuf-dev && apt install protobuf-compiler && apt install libgstreamer1.0-dev && apt install libconfig-dev && apt install libusb-1.0-0-dev && apt install libegl-dev &&apt install libgles2-mesa-dev && apt install libsdl2-dev
-1. apt remove libsdl2-2.0-0 && apt install libsdl2-dev && apt install libsdl2-image-dev && apt install liblxc-dev && apt install libproperties-cpp-dev && apt install libsystemd-dev && apt install libcap-dev && apt install libgmock-dev
+1. Find out the IP address of your Odroid N2 (eg. from your router or using 'nmap -sT 192.168.0.* -p 22 -P0|grep -B 4 open|grep "scan report"') and ssh to it (user: root, password: odroid)
+1. echo -en "d\n2\nn\np\n2\n264192\n16777215\np\nw\n"|fdisk /dev/mmcblk1 (Resize image somewhat, just enough to complete following instructions.)
+1. resize2fs /dev/mmcblk1p2
+1. apt upgrade && apt install git libboost1.67-all-dev libssl-dev libprotobuf-dev protobuf-compiler libgstreamer1.0-dev libconfig-dev libusb-1.0-0-dev libegl-dev libgles2-mesa-dev libsdl2-dev
+1. apt remove libsdl2-2.0-0 && apt install libsdl2-dev libsdl2-image-dev liblxc-dev libproperties-cpp-dev libsystemd-dev libcap-dev libgmock-dev
 1. apt remove python3-distupgrade ubuntu-release-upgrader-core && apt install ubuntu-desktop-minimal
 1. Follow steps below (based on https://forum.odroid.com/viewtopic.php?f=176&t=33993&p=261833#p261833) to install 5.9.x+ kernel.
 1. git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
