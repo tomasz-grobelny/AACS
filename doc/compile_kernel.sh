@@ -9,8 +9,8 @@ date -Iseconds
 make -j 4
 date -Iseconds
 make modules_install
+make headers_install INSTALL_HDR_PATH=/usr
 R=$(make kernelrelease)
-#cp -r "/lib/modules/$R" "$DIR"_modules
 mkdir "$DIR"
 mkimage -A arm64 -O linux -T kernel -C none -a $O -e $O -n "$R" -d arch/arm64/boot/Image "$DIR/uImage"
 cp arch/arm64/boot/dts/amlogic/meson-g12b-odroid-n2.dtb "$DIR/n2.dtb"

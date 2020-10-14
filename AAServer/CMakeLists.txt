@@ -11,7 +11,6 @@ pkg_check_modules (gst REQUIRED IMPORTED_TARGET gstreamer-base-1.0)
 pkg_check_modules (LIBUSBGX REQUIRED IMPORTED_TARGET libusbgx)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(/opt/linux/include/uapi/linux/usb/)
 include_directories(include)
 include_directories(${gst_INCLUDE_DIRS})
 

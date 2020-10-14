@@ -10,7 +10,7 @@
 #include "ModeSwitcher.h"
 #include "Udc.h"
 #include "descriptors.h"
-#include "functionfs.h"
+#include <linux/usb/functionfs.h>
 #include "utils.h"
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>

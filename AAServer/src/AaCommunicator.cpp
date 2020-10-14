@@ -19,7 +19,7 @@
 #include <boost/signals2.hpp>
 #include <cstdint>
 #include <fcntl.h>
-#include <functionfs.h>
+#include <linux/usb/functionfs.h>
 #include <iostream>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
@@ -397,6 +397,9 @@ ssize_t AaCommunicator::handleEp0Message(int fd, const void *buf,
   const usb_functionfs_event *event = (const usb_functionfs_event *)buf;
   for (size_t n = nbytes / sizeof *event; n; --n, ++event) {
     std::cout << "ep0 event " << (int)event->type << " " << std::endl;
+    if (event->type == FUNCTIONFS_SUSPEND) {
+      throw std::runtime_error("ep0 suspend");
+    }
   }
   return nbytes;
 }

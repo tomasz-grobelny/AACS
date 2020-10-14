@@ -1,7 +1,7 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
 #include "descriptors.h"
-#include "functionfs.h"
+#include <linux/usb/functionfs.h>
 #include "utils.h"
 #include <linux/types.h>
 #include <unistd.h>
