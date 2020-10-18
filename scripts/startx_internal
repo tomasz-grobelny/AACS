@@ -1,0 +1,40 @@
+#!/bin/bash
+ID=`whoami`;
+SCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+HOMEDIR=`eval echo ~$ID`;
+UUID=`cat $HOMEDIR/logs/setup.log | tail -n 1`;
+logfileGST="$HOMEDIR/logs/setup.$UUID/GST.log"
+logfileSM="$HOMEDIR/logs/setup.$UUID/SM.log"
+logfileGE="$HOMEDIR/logs/setup.$UUID/GE.log"
+
+cd $HOMEDIR
+date
+echo $UUID
+echo $logfileSM
+
+anbox session-manager --single-window --window-size=800,600 > $logfileSM 2>&1 &
+sleep 20;
+echo "Start OsmAnd begin"
+anbox launch --package=net.osmand --component=net.osmand.plus.activities.MapActivity
+echo "Start OsmAnd end"
+
+(
+cd $SCRIPTSDIR/../build/AAServer/
+date
+while true; do
+    sleep 3;
+    sudo chmod 777 socket
+    export GST_PLUGIN_PATH=$SCRIPTSDIR/../../AAVideoSink/build/
+    gst-launch-1.0 ximagesrc show-pointer=true use-damage=false xname="Anbox - Android in a Box" ! videoconvert ! video/x-raw,width=800,height=600,pixel-aspect-ratio=1/1,framerate=30/1 ! queue ! x264enc speed-preset=ultrafast ! video/x-h264,stream-format=byte-stream,profile=high,width=800,height=600 ! aavideosink socketName=socket
+done
+) > $logfileGST 2>&1 &
+
+(
+cd $SCRIPTSDIR/../build/GetEvents/
+date
+while true; do
+    sleep 3;
+    sudo chmod 777 socket
+    ./GetEvents ../AAServer/socket "Anbox - Android in a Box"
+done
+) > $logfileGE 2>&1 &

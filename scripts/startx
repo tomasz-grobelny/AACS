@@ -1,0 +1,9 @@
+#!/bin/bash
+ID=`whoami`;
+SCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+HOMEDIR=`eval echo ~$ID`;
+UUID=`cat $HOMEDIR/logs/setup.log | tail -n 1`;
+logfileXS="$HOMEDIR/logs/setup.$UUID/XS.log"
+mkdir $HOMEDIR/logs/setup.$UUID/
+chmod -R 777 $HOMEDIR/logs/setup.$UUID/
+$SCRIPTSDIR/startx_internal > $logfileXS

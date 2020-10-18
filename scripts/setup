@@ -1,0 +1,17 @@
+#!/bin/bash
+rcLocalAlreadyUpdated=`cat /etc/rc.local |grep /start|wc -l`;
+ID=`whoami`;
+SCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+HOMEDIR=`eval echo ~$ID`;
+if [[ "$rcLocalAlreadyUpdated" == "0" ]]; then
+    sed -i "2i$SCRIPTSDIR/start >> $HOMEDIR/logs/rc.local 2>&1 &" /etc/rc.local
+fi
+
+cat $SCRIPTSDIR/autologin.conf | sed "s/#USER#/$ID/" > /etc/lightdm/lightdm.conf.d/autologin.conf
+mkdir -p $HOMEDIR/.config/autostart/
+mkdir -p $HOMEDIR/logs/
+cat "$SCRIPTSDIR/aacs startx.desktop" | sed "s@#SCRIPTSDIR#@$SCRIPTSDIR@" > "$HOMEDIR/.config/autostart/aacs startx.desktop"
+echo -en "password\npassword\nn\n"|vncpasswd
+echo "ID=$ID" > $SCRIPTSDIR/id
+mkdir -p $HOMEDIR/.config/xfce4/xfconf/xfce-perchannel-xml/
+cp -f $SCRIPTSDIR/xfce4-screensaver.xml $HOMEDIR/.config/xfce4/xfconf/xfce-perchannel-xml/

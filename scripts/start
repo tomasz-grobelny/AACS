@@ -1,0 +1,63 @@
+#!/bin/bash
+SCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+. $SCRIPTSDIR/id
+HOMEDIR=`eval echo ~$ID`;
+LOGDIR=$HOMEDIR/logs/
+mkdir -p $LOGDIR
+touch $LOGDIR/setup.log
+UUID=`cat $LOGDIR/setup.log|wc -l`.`openssl rand -hex 12`
+echo "$UUID" >> $LOGDIR/setup.log
+logfileAAS="$LOGDIR/setup.$UUID/Server.log"
+logfileAAC="$LOGDIR/setup.$UUID/Client.log"
+logfileX0="$LOGDIR/setup.$UUID/X0.log"
+logfileCM="$LOGDIR/setup.$UUID/CM.log"
+logfileGST="$LOGDIR/setup.$UUID/GST.log"
+mkdir $LOGDIR/setup.$UUID
+
+modprobe libcomposite
+mkdir /dev/binderfs/
+mount binder -t binder /dev/binderfs/
+ln -s /dev/binderfs/binder /dev/binder
+$HOMEDIR/anbox/scripts/anbox-bridge.sh start
+anbox container-manager --data-path=$HOMEDIR/anbox-data/ --android-image=$HOMEDIR/android.img --privileged --container-network-gateway=192.168.250.1 --container-network-address=192.168.250.2 --use-rootfs-overlay > $logfileCM 2>&1 &
+lxc-attach -P $HOMEDIR/anbox-data/containers/ -n default ip r a default via 192.168.250.1
+(
+while true; do
+    x0vncserver -passwordfile $HOMEDIR/.vnc/passwd -display :0
+    sleep 10;
+done
+) > $logfileX0 2>&1 &
+
+devMode=`gpioget gpiochip0 62`; #connect pin1 and pin7 together
+if [[ "$devMode" != "0" ]]; then
+    echo "Development mode is on ('$devMode')";
+    exit;
+else
+    echo "Development mode is off ('$devMode')";
+fi
+
+(
+cd $SCRIPTSDIR/../build/AAServer/
+while true; do
+    date;
+    rm -f socket
+    ./AAServer;
+    sleep 1;
+done
+) > $logfileAAS 2>&1 &
+
+(
+cd $SCRIPTSDIR/../build/AAClient/
+while true; do
+    sleep 1;
+    date;
+    ./AAClient ../AAServer/socket;
+done
+) > $logfileAAC 2>&1 &
+
+(
+while true; do
+    sleep 1;
+    sync;
+done
+)
