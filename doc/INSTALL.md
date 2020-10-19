@@ -20,7 +20,7 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. apt upgrade
 1. apt install git u-boot-tools build-essential libncurses5-dev bison flex bc libboost1.67-all-dev libssl-dev libprotobuf-dev protobuf-compiler libgstreamer1.0-dev libconfig-dev libusb-1.0-0-dev libegl-dev libgles2-mesa-dev libglm-dev libsdl2-dev
 1. apt remove libsdl2-2.0-0 && apt install libsdl2-dev libsdl2-image-dev liblxc-dev libproperties-cpp-dev libsystemd-dev libcap-dev libgmock-dev python3-distupgrade ubuntu-release-upgrader-core
-1. apt install ubuntu-desktop-minimal libxtst-dev
+1. apt install ubuntu-desktop-minimal libxtst-dev adb gpsd gpsd-clients
 1. Follow steps below (based on https://forum.odroid.com/viewtopic.php?f=176&t=33993&p=261833#p261833) to install 5.9.x+ kernel.
 1. git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
 1. cd linux && wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/kernel_config -O .config && wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/compile_kernel.sh
@@ -29,10 +29,15 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. reboot
 1. git clone https://github.com/libusbgx/libusbgx.git && cd libusbgx && autoreconf -i && ./configure --prefix=/usr && make && make install && cd ..
 1. git clone https://github.com/anbox/anbox.git && cd anbox && git submodule init && git submodule update && mkdir build && cd build && cmake .. && make -j 4 && make install && cd ../..
-1. wget http://anbox.postmarketos.org/android-7.1.2_r39-anbox_arm64-userdebug.img
+1. wget http://anbox.postmarketos.org/android-7.1.2_r39-anbox_arm64-userdebug.img -O android.img
 1. mkdir AA && cd AA
 1. git clone --recurse-submodules https://github.com/tomasz-grobelny/AACS.git && cd AACS && mkdir build && cd build && cmake .. && make && cd ../..
 1. git clone https://github.com/tomasz-grobelny/AAVideoSink.git && cd AAVideoSink && mkdir build && cd build && cmake .. && make && cd ../..
+1. cd
+1. ./AA/AACS/scripts/setup
+1. reboot
+1. wget https://f-droid.org/repo/com.menny.android.anysoftkeyboard_6279.apk && adb install com.menny.android.anysoftkeyboard_6279.apk
+1. wget https://download.osmand.net/releases/net.osmand-3.8.3-383.apk && adb install net.osmand-3.8.3-383.apk
 1. More steps to follow...
 1. Stay tuned...
 1. Turn off Odroid N2 and move card to card reader.
