@@ -17,10 +17,9 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. Find out the IP address of your Odroid N2 (eg. from your router or using 'nmap -sT 192.168.0.* -p 22 -P0|grep -B 4 open|grep "scan report"') and ssh to it (user: root, password: odroid)
 1. echo -en "d\n2\nn\np\n2\n264192\n33554431\np\nw\n"|fdisk /dev/mmcblk1 (Resize image somewhat, just enough to complete following instructions.)
 1. resize2fs /dev/mmcblk1p2
-1. apt upgrade
-1. apt install git u-boot-tools build-essential libncurses5-dev bison flex bc libboost1.67-all-dev libssl-dev libprotobuf-dev protobuf-compiler libgstreamer1.0-dev libconfig-dev libusb-1.0-0-dev libegl-dev libgles2-mesa-dev libglm-dev libsdl2-dev
-1. apt remove libsdl2-2.0-0 && apt install libsdl2-dev libsdl2-image-dev liblxc-dev libproperties-cpp-dev libsystemd-dev libcap-dev libgmock-dev python3-distupgrade ubuntu-release-upgrader-core
-1. apt install -yq ubuntu-desktop-minimal libxtst-dev adb gpsd gpsd-clients lightdm gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-libav tigervnc-scraping-server lxc-utils xfce4
+1. apt update && apt -yq upgrade
+1. apt -yq install git u-boot-tools build-essential libncurses5-dev bison flex bc libboost1.67-all-dev libssl-dev libprotobuf-dev protobuf-compiler libgstreamer1.0-dev libconfig-dev libusb-1.0-0-dev libegl-dev libgles2-mesa-dev libglm-dev
+1. apt -yq remove libsdl2-2.0-0 python3-distupgrade && rm -f /etc/pulse/default.pa && DEBIAN_FRONTEND=noninteractive apt -yq install libsdl2-dev libsdl2-image-dev liblxc-dev libproperties-cpp-dev libsystemd-dev libcap-dev libgmock-dev python3-distupgrade ubuntu-release-upgrader-core ubuntu-desktop-minimal libxtst-dev adb gpsd gpsd-clients lightdm gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-libav tigervnc-scraping-server lxc-utils xfce4 && apt -yq remove gdm3 && dpkg-reconfigure lightdm
 1. Follow steps below (based on https://forum.odroid.com/viewtopic.php?f=176&t=33993&p=261833#p261833) to install 5.9.x+ kernel.
 1. git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
 1. cd linux && wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/kernel_config -O .config && wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/compile_kernel.sh
