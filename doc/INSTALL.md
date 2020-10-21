@@ -19,7 +19,7 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. resize2fs /dev/mmcblk1p2
 1. apt update && apt -yq upgrade
 1. apt -yq install git u-boot-tools build-essential libncurses5-dev bison flex bc libboost1.67-all-dev libssl-dev libprotobuf-dev protobuf-compiler libgstreamer1.0-dev libconfig-dev libusb-1.0-0-dev libegl-dev libgles2-mesa-dev libglm-dev
-1. apt -yq remove libsdl2-2.0-0 python3-distupgrade && rm -f /etc/pulse/default.pa && DEBIAN_FRONTEND=noninteractive apt -yq install libsdl2-dev libsdl2-image-dev liblxc-dev libproperties-cpp-dev libsystemd-dev libcap-dev libgmock-dev python3-distupgrade ubuntu-release-upgrader-core ubuntu-desktop-minimal libxtst-dev adb gpsd gpsd-clients lightdm gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-libav tigervnc-scraping-server lxc-utils xfce4 && apt -yq remove gdm3 && dpkg-reconfigure lightdm
+1. apt -yq remove libsdl2-2.0-0 python3-distupgrade && rm -f /etc/pulse/default.pa && DEBIAN_FRONTEND=noninteractive apt -yq install libsdl2-dev libsdl2-image-dev liblxc-dev libproperties-cpp-dev libsystemd-dev libcap-dev libgmock-dev python3-distupgrade ubuntu-release-upgrader-core ubuntu-desktop-minimal libxtst-dev adb gpsd gpsd-clients lightdm gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-libav tigervnc-scraping-server lxc-utils xfce4
 1. Follow steps below (based on https://forum.odroid.com/viewtopic.php?f=176&t=33993&p=261833#p261833) to install 5.9.x+ kernel.
 1. git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
 1. cd linux && wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/kernel_config -O .config && wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/compile_kernel.sh
@@ -33,6 +33,7 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. git clone --recurse-submodules https://github.com/tomasz-grobelny/AACS.git && cd AACS && mkdir build && cd build && cmake .. && make && cd ../..
 1. git clone https://github.com/tomasz-grobelny/AAVideoSink.git && cd AAVideoSink && mkdir build && cd build && cmake .. && make && cd ../..
 1. cd
+1. apt -yq remove gdm3 && dpkg-reconfigure lightdm
 1. ./AA/AACS/scripts/setup
 1. reboot
 1. wget https://f-droid.org/repo/com.menny.android.anysoftkeyboard_6279.apk && adb install com.menny.android.anysoftkeyboard_6279.apk
