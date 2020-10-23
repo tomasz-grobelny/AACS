@@ -6,6 +6,7 @@ UUID=`cat $HOMEDIR/logs/setup.log | tail -n 1`;
 logfileGST="$HOMEDIR/logs/setup.$UUID/GST.log"
 logfileSM="$HOMEDIR/logs/setup.$UUID/SM.log"
 logfileGE="$HOMEDIR/logs/setup.$UUID/GE.log"
+LOGDIR="$HOMEDIR/logs/setup.$UUID/"
 
 cd $HOMEDIR
 date
@@ -13,10 +14,18 @@ echo $UUID
 echo $logfileSM
 
 anbox session-manager --single-window --window-size=800,600 > $logfileSM 2>&1 &
-sleep 20;
-echo "Start OsmAnd begin"
-anbox launch --package=net.osmand --component=net.osmand.plus.activities.MapActivity
-echo "Start OsmAnd end"
+
+(
+while true; do
+    echo "Start OsmAnd begin"
+    anbox launch --package=net.osmand --component=net.osmand.plus.activities.MapActivity
+    if [[ "$?" == "0" ]]; then
+	echo "Start OsmAnd end"
+	break;
+    fi
+    sleep 1;
+done
+) > $LOGDIR/osmand_launch.log 2>&1 &
 
 (
 cd $SCRIPTSDIR/../build/AAServer/
