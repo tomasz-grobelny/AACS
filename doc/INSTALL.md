@@ -42,6 +42,7 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. Connect via vncviewer to your Odroid N2.
 1. Click on AnySoftKeyboard app icon, click on "Start setup..." link, click on "Go to your Language&Input settings..." link, enable AnySoftKeyboard, click on in dialog box twice, press Esc twice.
 1. dd if=/dev/zero of=/empty_file ; rm /empty_file
+1. apt -yq install gpiod
 1. halt
 1. Turn off Odroid N2 and move card to card reader.
 1. dd if=/dev/sdX of=aacs_image.img bs=1M count=12288 && partx -v -a aacs_image.img
