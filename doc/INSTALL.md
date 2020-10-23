@@ -46,7 +46,7 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. Turn off Odroid N2 and move card to card reader.
 1. dd if=/dev/sdX of=aacs_image.img bs=1M count=12288 && partx -v -a aacs_image.img
 1. mkdir aacs_image && mount /dev/loopXp2 aacs_image && touch aacs_image/.first_boot && rm -f aacs_image/etc/ssh/ssh_host_* && umount aacs_image && rmdir aacs_image
-1. xz aacs_image.img
+1. xz -T 8 aacs_image.img
 1. aacs_image.img.xz is now ready for distribution
 
 # Development tools
