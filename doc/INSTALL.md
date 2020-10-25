@@ -19,7 +19,7 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. resize2fs /dev/mmcblk1p2
 1. apt update && apt -yq upgrade
 1. apt -yq install git u-boot-tools build-essential libncurses5-dev bison flex bc libboost1.67-all-dev libssl-dev libprotobuf-dev protobuf-compiler libgstreamer1.0-dev libconfig-dev libusb-1.0-0-dev libegl-dev libgles2-mesa-dev libglm-dev
-1. apt -yq remove libsdl2-2.0-0 python3-distupgrade && rm -f /etc/pulse/default.pa && DEBIAN_FRONTEND=noninteractive apt -yq install libsdl2-dev libsdl2-image-dev liblxc-dev libproperties-cpp-dev libsystemd-dev libcap-dev libgmock-dev python3-distupgrade ubuntu-release-upgrader-core ubuntu-desktop-minimal libxtst-dev adb gpsd gpsd-clients lightdm gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-libav tigervnc-scraping-server lxc-utils xfce4
+1. apt -yq remove libsdl2-2.0-0 python3-distupgrade && rm -f /etc/pulse/default.pa && DEBIAN_FRONTEND=noninteractive apt -yq install libsdl2-dev libsdl2-image-dev liblxc-dev libproperties-cpp-dev libsystemd-dev libcap-dev libgmock-dev python3-distupgrade ubuntu-release-upgrader-core ubuntu-desktop-minimal libxtst-dev adb gpsd gpsd-clients lightdm gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-libav tigervnc-scraping-server lxc-utils xfce4 libdw-dev mc clangd clang gpiod
 1. Follow steps below (based on https://forum.odroid.com/viewtopic.php?f=176&t=33993&p=261833#p261833) to install 5.9.x+ kernel.
 1. git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
 1. cd linux && wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/kernel_config -O .config && wget https://github.com/tomasz-grobelny/AACS/raw/master/doc/compile_kernel.sh
@@ -42,7 +42,6 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. Connect via vncviewer to your Odroid N2.
 1. Click on AnySoftKeyboard app icon, click on "Start setup..." link, click on "Go to your Language&Input settings..." link, enable AnySoftKeyboard, click on in dialog box twice, press Esc twice.
 1. dd if=/dev/zero of=/empty_file ; rm /empty_file
-1. apt -yq install gpiod
 1. halt
 1. Turn off Odroid N2 and move card to card reader.
 1. dd if=/dev/sdX of=aacs_image.img bs=1M count=12288 && partx -v -a aacs_image.img
