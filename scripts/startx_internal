@@ -16,6 +16,8 @@ echo $logfileSM
 anbox session-manager --single-window --window-size=800,600 > $logfileSM 2>&1 &
 
 (
+date
+while (( "`xwininfo -root -tree|grep anbox|sed "s/ /\n/g"|grep -v "^$"|wc -l`" == "0" )); do sleep 1; done
 while true; do
     echo "Start OsmAnd begin"
     anbox launch --package=net.osmand --component=net.osmand.plus.activities.MapActivity
@@ -23,27 +25,29 @@ while true; do
 	echo "Start OsmAnd end"
 	break;
     fi
-    sleep 1;
+    sleep 3;
 done
 ) > $LOGDIR/osmand_launch.log 2>&1 &
 
 (
 cd $SCRIPTSDIR/../build/AAServer/
 date
+while (( "`xwininfo -root -tree|grep anbox|sed "s/ /\n/g"|grep -v "^$"|wc -l`" == "0" )); do sleep 1; done
 while true; do
-    sleep 3;
     sudo chmod 777 socket
     export GST_PLUGIN_PATH=$SCRIPTSDIR/../../AAVideoSink/build/
-    gst-launch-1.0 ximagesrc show-pointer=true use-damage=false xname="Anbox - Android in a Box" ! videoconvert ! video/x-raw,width=800,height=600,pixel-aspect-ratio=1/1,framerate=30/1 ! queue ! x264enc speed-preset=ultrafast ! video/x-h264,stream-format=byte-stream,profile=high,width=800,height=600 ! aavideosink socketName=socket
+    gst-launch-1.0 ximagesrc show-pointer=false use-damage=false xname="Anbox - Android in a Box" ! videoconvert ! video/x-raw,width=800,height=600,pixel-aspect-ratio=1/1,framerate=30/1 ! queue ! x264enc speed-preset=ultrafast ! video/x-h264,stream-format=byte-stream,profile=high,width=800,height=600 ! aavideosink socketName=socket
+    sleep 3;
 done
 ) > $logfileGST 2>&1 &
 
 (
 cd $SCRIPTSDIR/../build/GetEvents/
 date
+while (( "`xwininfo -root -tree|grep anbox|sed "s/ /\n/g"|grep -v "^$"|wc -l`" == "0" )); do sleep 1; done
 while true; do
-    sleep 3;
     sudo chmod 777 socket
     ./GetEvents ../AAServer/socket "Anbox - Android in a Box"
+    sleep 3;
 done
 ) > $logfileGE 2>&1 &

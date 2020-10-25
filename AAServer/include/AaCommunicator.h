@@ -67,7 +67,7 @@ class AaCommunicator {
   BIO *readBio = nullptr;
   BIO *writeBio = nullptr;
 
-  ChannelHandler *channelHandlers[UINT8_MAX];
+  ChannelHandler *channelHandlers[UINT8_MAX + 1];
   uint8_t channelTypeToChannelNumber[ChannelType::MaxValue];
   void handleChannelMessage(const Message &message);
 
@@ -79,8 +79,8 @@ public:
   AaCommunicator(const Library &_lib);
   void setup(const Udc &udc);
   boost::signals2::signal<void(const std::exception &ex)> error;
-  boost::signals2::signal<void(int clientId, uint8_t channelNumber, bool specific,
-                               std::vector<uint8_t> data)>
+  boost::signals2::signal<void(int clientId, uint8_t channelNumber,
+                               bool specific, std::vector<uint8_t> data)>
       gotMessage;
   uint8_t getChannelNumberByChannelType(ChannelType ct);
   void sendToChannel(int clientId, uint8_t channelNumber, bool specific,

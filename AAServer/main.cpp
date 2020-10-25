@@ -77,7 +77,15 @@ int main(int argc, char *argv[]) {
              << (int)channelId << endl;
         scl->sendMessage({channelId});
       } else if (p.packetType == PacketType::RawData) {
-        aac.sendToChannel(clients[scl], p.channelNumber, p.specific, p.data);
+        try {
+          aac.sendToChannel(clients[scl], p.channelNumber, p.specific, p.data);
+        } catch (exception &ex) {
+          cout << "disconnect client: " << clients[scl] << " " << ex.what()
+               << endl;
+          aac.disconnected(clients[scl]);
+          clients.erase(scl);
+          throw;
+        }
       } else if (p.packetType == PacketType::GetServiceDescriptor) {
         cout << "get service descriptor" << endl;
         scl->sendMessage(aac.getServiceDescriptor());
