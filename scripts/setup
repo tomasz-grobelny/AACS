@@ -11,7 +11,8 @@ cat $SCRIPTSDIR/autologin.conf | sed "s/#USER#/$ID/" > /etc/lightdm/lightdm.conf
 mkdir -p $HOMEDIR/.config/autostart/
 mkdir -p $HOMEDIR/logs/
 cat "$SCRIPTSDIR/aacs startx.desktop" | sed "s@#SCRIPTSDIR#@$SCRIPTSDIR@" > "$HOMEDIR/.config/autostart/aacs startx.desktop"
-echo -en "password\npassword\nn\n"|vncpasswd
+cp -f "$SCRIPTSDIR/light-locker.desktop" "$HOMEDIR/.config/autostart/"
+echo -en "odroid\nodroid\nn\n"|vncpasswd
 echo "ID=$ID" > $SCRIPTSDIR/id
 mkdir -p $HOMEDIR/.config/xfce4/xfconf/xfce-perchannel-xml/
 cp -f $SCRIPTSDIR/xfce4-screensaver.xml $HOMEDIR/.config/xfce4/xfconf/xfce-perchannel-xml/

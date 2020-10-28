@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Screen Locker
+Comment=Launch screen locker program
+Icon=preferences-desktop-screensaver
+Exec=
+NoDisplay=true
+NotShowIn=GNOME;Unity;
+NotShownIn=Gnome;Unity
