@@ -19,8 +19,8 @@
 #include <boost/signals2.hpp>
 #include <cstdint>
 #include <fcntl.h>
-#include <linux/usb/functionfs.h>
 #include <iostream>
+#include <linux/usb/functionfs.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <stdexcept>
@@ -407,7 +407,7 @@ ssize_t AaCommunicator::handleEp0Message(int fd, const void *buf,
 AaCommunicator::AaCommunicator(const Library &_lib) : lib(_lib) {
   initializeSslContext();
   fill_n(channelTypeToChannelNumber, ChannelType::MaxValue, -1);
-  fill_n(channelHandlers, UINT8_MAX, nullptr);
+  fill_n(channelHandlers, UINT8_MAX + 1, nullptr);
   channelHandlers[0] = new DefaultChannelHandler(0);
   channelHandlers[0]->sendToClient.connect(
       [this](int clientId, uint8_t channelNumber, bool specific,

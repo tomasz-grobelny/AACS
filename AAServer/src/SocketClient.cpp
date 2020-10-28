@@ -16,7 +16,13 @@ SocketClient::~SocketClient() {
 }
 
 void SocketClient::ready() {
-  clientThread = std::thread([this]() { clientThreadMethod(); });
+  clientThread = std::thread([this]() {
+    try {
+      clientThreadMethod();
+    } catch (exception &ex) {
+      close(fd);
+    }
+  });
 }
 
 void SocketClient::clientThreadMethod() {
