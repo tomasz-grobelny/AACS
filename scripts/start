@@ -18,6 +18,9 @@ modprobe libcomposite
 mkdir /dev/binderfs/
 mount binder -t binder /dev/binderfs/
 ln -s /dev/binderfs/binder /dev/binder
+# max and default size for socket messages = 2MB (may need to be increased in case of higher resolution)
+sysctl net.core.wmem_max=2097152
+sysctl net.core.wmem_default=2097152
 $HOMEDIR/anbox/scripts/anbox-bridge.sh start
 anbox container-manager --data-path=$HOMEDIR/anbox-data/ --android-image=$HOMEDIR/android.img --privileged --container-network-gateway=192.168.250.1 --container-network-address=192.168.250.2 --use-rootfs-overlay > $logfileCM 2>&1 &
 (

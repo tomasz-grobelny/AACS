@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
       cout << "y: " << get<1>(coords) << endl;
       cout << "pid: " << tl.pid() << endl;
       XTestFakeMotionEvent(disp, 0, get<0>(coords),
-                           get<1>(coords) / 480.0 * 600.0, CurrentTime);
+                           get<1>(coords), CurrentTime);
     }
     if (ie.touch_event().touch_action() == tag::aas::TouchAction::Press ||
         ie.touch_event().touch_action() == tag::aas::TouchAction::Down) {

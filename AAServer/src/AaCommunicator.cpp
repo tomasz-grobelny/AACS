@@ -194,6 +194,7 @@ void AaCommunicator::handleMessageContent(const Message &message) {
   } else if (messageType == MessageType::NavigationFocusResponse) {
     handleChannelMessage(message);
   } else if (messageType == MessageType::VersionRequest) {
+    cout << "got version request" << endl;
     handleVersionRequest(shortView + 1, msg.size() - sizeof(__u16));
     cout << "version negotiation ok" << endl;
   } else if (messageType == MessageType::SslHandshake) {

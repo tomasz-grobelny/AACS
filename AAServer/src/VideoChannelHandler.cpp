@@ -180,6 +180,55 @@ void VideoChannelHandler::createAppSource(int clientId, uint8_t priority) {
   gst_element_set_state(pipeline, GST_STATE_PLAYING);
 }
 
+void VideoChannelHandler::createRawAppSource(int clientId, uint8_t priority) {
+  gst_element_set_state(pipeline, GST_STATE_PAUSED);
+
+  auto app_source = gst_element_factory_make(
+      "appsrc", ("app_source_" + to_string(clientId)).c_str());
+  auto srccaps = gst_caps_new_simple(
+      "video/x-raw", "width", G_TYPE_INT, 800, "height", G_TYPE_INT, 480,
+      "framerate", GST_TYPE_FRACTION, 30, 1, "pixel-aspect-ratio",
+      GST_TYPE_FRACTION, 1, 1, "format", G_TYPE_STRING, "I420", NULL);
+  g_object_set(app_source, "caps", srccaps, NULL);
+  g_object_set(app_source, "format", GST_FORMAT_TIME, NULL);
+  g_object_set(app_source, "is-live", TRUE, NULL);
+  gst_caps_unref(srccaps);
+
+  auto videoscale = gst_element_factory_make(
+      "videoscale", ("videoscale_" + to_string(clientId)).c_str());
+  auto videorate = gst_element_factory_make(
+      "videorate", ("videorate_" + to_string(clientId)).c_str());
+  auto videoconvert = gst_element_factory_make(
+      "videoconvert", ("videoconvert_" + to_string(clientId)).c_str());
+
+  auto rawcaps =
+      gst_caps_new_simple("video/x-raw", "width", G_TYPE_INT, 800, "height",
+                          G_TYPE_INT, 480, "framerate", GST_TYPE_FRACTION, 30,
+                          1, "format", G_TYPE_STRING, "I420", NULL);
+  auto capsfilter_pre = gst_element_factory_make(
+      "capsfilter", ("capsfilter_pre_" + to_string(clientId)).c_str());
+  g_object_set(capsfilter_pre, "caps", rawcaps, NULL);
+
+  gst_bin_add_many(GST_BIN(pipeline), app_source, videoconvert, videoscale,
+                   videorate, capsfilter_pre, NULL);
+  GSTCHECK(gst_element_link_many(app_source, videoconvert, videoscale,
+                                 videorate, capsfilter_pre, NULL));
+
+  auto sink_request_pad = gst_element_get_request_pad(inputSelector, "sink_%u");
+  auto src_static_pad = gst_element_get_static_pad(capsfilter_pre, "src");
+  if (gst_pad_link(src_static_pad, sink_request_pad) != GST_PAD_LINK_OK)
+    throw runtime_error("gst_pad_link createRawAppSource failed");
+
+  g_object_set(inputSelector, "active-pad", sink_request_pad, NULL);
+  clientData[clientId].app_source = app_source;
+  clientData[clientId].startTimestamp = 0;
+  clientData[clientId].priority = priority;
+  clientData[clientId].sink_request_pad = sink_request_pad;
+  clientData[clientId].src_static_pad = src_static_pad;
+
+  gst_element_set_state(pipeline, GST_STATE_PLAYING);
+}
+
 void VideoChannelHandler::openChannel() {
   channelOpened = true;
   ChannelHandler::openChannel();
@@ -206,6 +255,7 @@ void VideoChannelHandler::disconnected(int clientId) {
                  : sink_request_pad;
   g_object_set(inputSelector, "active-pad", srp, NULL);
   gst_pad_unlink(src_to_unlink, sink_to_unlink);
+  gst_bin_remove_many(GST_BIN(pipeline), appsrc, NULL);
   gst_element_set_state(pipeline, GST_STATE_PLAYING);
 }
 
@@ -295,6 +345,12 @@ bool VideoChannelHandler::handleMessageFromClient(int clientId,
   if (msgType == 0x02) {
     int priority = data[1];
     createAppSource(clientId, priority);
+    pushDataToPipeline(clientId, 0,
+                       vector<uint8_t>(data.begin() + 2, data.end()));
+    return true;
+  } else if (msgType == 0x04) {
+    int priority = data[1];
+    createRawAppSource(clientId, priority);
     pushDataToPipeline(clientId, 0,
                        vector<uint8_t>(data.begin() + 2, data.end()));
     return true;

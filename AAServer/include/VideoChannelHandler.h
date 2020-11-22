@@ -32,6 +32,7 @@ class VideoChannelHandler : public ChannelHandler {
                           const std::vector<uint8_t> &data);
 
   void createAppSource(int clientId, uint8_t priority);
+  void createRawAppSource(int clientId, uint8_t priority);
   static GstFlowReturn new_sample(GstElement *sink, VideoChannelHandler *_this);
   void openChannel();
 

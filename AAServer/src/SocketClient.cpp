@@ -26,7 +26,7 @@ void SocketClient::ready() {
 }
 
 void SocketClient::clientThreadMethod() {
-  int bufSize = 100 * 1024;
+  int bufSize = 2 * 1024 * 1024;
   uint8_t buffer[bufSize];
   for (;;) {
     struct timeval timeout {
