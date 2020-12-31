@@ -31,7 +31,6 @@ Follow these steps to get AACS and Anbox running on Odroid N2:
 1. wget http://anbox.postmarketos.org/android-7.1.2_r39-anbox_arm64-userdebug.img -O android.img
 1. mkdir AA && cd AA
 1. git clone --recurse-submodules https://github.com/tomasz-grobelny/AACS.git && cd AACS && mkdir build && cd build && cmake .. && make -j 4 && cd ../..
-1. git clone https://github.com/tomasz-grobelny/AAVideoSink.git && cd AAVideoSink && mkdir build && cd build && cmake .. && make && cd ../..
 1. cd
 1. apt -yq remove gdm3 && dpkg-reconfigure lightdm
 1. ./AA/AACS/scripts/setup

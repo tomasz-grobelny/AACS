@@ -35,7 +35,7 @@ date
 while (( "`xwininfo -root -tree|grep anbox|sed "s/ /\n/g"|grep -v "^$"|wc -l`" == "0" )); do sleep 1; done
 while true; do
     sudo chmod 777 socket
-    export GST_PLUGIN_PATH=$SCRIPTSDIR/../../AAVideoSink/build/
+    export GST_PLUGIN_PATH=$SCRIPTSDIR/../build/AAVideoSink/
     gst-launch-1.0 ximagesrc show-pointer=false use-damage=false xname="Anbox - Android in a Box" ! videoconvert ! video/x-raw,width=800,height=480,pixel-aspect-ratio=1/1,framerate=30/1,format=I420 ! aavideosink socketName=socket
     sleep 3;
 done
