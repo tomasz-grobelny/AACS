@@ -1,0 +1,12 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message AudioConfig
+{
+    required uint32 sample_rate = 1;
+    required uint32 bits_per_sample = 2;
+    required uint32 channel_count = 3;
+}

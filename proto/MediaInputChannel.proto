@@ -1,0 +1,14 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+import "MediaStreamType.proto";
+import "AudioConfig.proto";
+
+package tag.aas;
+
+message MediaInputChannel
+{
+    required MediaStreamType.Enum stream_type = 1;
+    required AudioConfig audio_config = 2;
+}

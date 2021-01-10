@@ -23,6 +23,7 @@
 #include <linux/usb/functionfs.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include <pcap/pcap.h>
 #include <stdexcept>
 
 #define CRT_FILE "android_auto.crt"
@@ -33,12 +34,34 @@ using namespace std;
 using namespace boost::filesystem;
 using namespace tag::aas;
 
+void AaCommunicator::logMessage(const Message &msg, bool direction) {
+  if (!pdumper)
+    return;
+  int pktSize = 8 + msg.content.size();
+  uint8_t buffer[pktSize];
+  buffer[0] = 0;
+  buffer[1] = 0;
+  buffer[2] = 0;
+  buffer[3] = 0;
+  buffer[4] = msg.channel;
+  buffer[5] = msg.flags;
+  buffer[6] = direction ? 1 : 0;
+  buffer[7] = 0;
+  copy(msg.content.begin(), msg.content.end(), buffer + 8);
+  struct pcap_pkthdr packet_header;
+  gettimeofday(&packet_header.ts, NULL);
+  packet_header.caplen = pktSize;
+  packet_header.len = pktSize;
+  pcap_dump((unsigned char *)pdumper, &packet_header, buffer);
+}
+
 void AaCommunicator::sendMessage(uint8_t channel, uint8_t flags,
                                  const std::vector<uint8_t> &buf) {
   Message msg;
   msg.channel = channel;
   msg.flags = flags;
   msg.content = buf;
+  logMessage(msg, true);
   {
     std::unique_lock<std::mutex> lk(sendQueueMutex);
     sendQueue.push_back(msg);
@@ -184,6 +207,7 @@ AaCommunicator::decryptMessage(const std::vector<uint8_t> &encryptedMsg) {
 }
 
 void AaCommunicator::handleMessageContent(const Message &message) {
+  logMessage(message, false);
   auto msg = message.content;
   const __u16 *shortView = (const __u16 *)msg.data();
   MessageType messageType = (MessageType)be16_to_cpu(shortView[0]);
@@ -405,7 +429,8 @@ ssize_t AaCommunicator::handleEp0Message(int fd, const void *buf,
   return nbytes;
 }
 
-AaCommunicator::AaCommunicator(const Library &_lib) : lib(_lib) {
+AaCommunicator::AaCommunicator(const Library &_lib, const std::string &dumpfile)
+    : lib(_lib) {
   initializeSslContext();
   fill_n(channelTypeToChannelNumber, ChannelType::MaxValue, -1);
   fill_n(channelHandlers, UINT8_MAX + 1, nullptr);
@@ -419,6 +444,12 @@ AaCommunicator::AaCommunicator(const Library &_lib) : lib(_lib) {
       [this](uint8_t channelNumber, uint8_t flags, std::vector<uint8_t> data) {
         sendMessage(channelNumber, flags, data);
       });
+  cout << "dumpfile: " << dumpfile << endl;
+
+  if (!dumpfile.empty()) {
+    pd = pcap_open_dead(DLT_NULL, 65535);
+    pdumper = pcap_dump_open(pd, dumpfile.c_str());
+  }
 }
 
 void AaCommunicator::setup(const Udc &udc) {
@@ -436,7 +467,7 @@ void AaCommunicator::setup(const Udc &udc) {
   configuration->addFunction(*ffs_function, "ffs_main");
 
   ep0fd = open((tmpMountpoint / "ep0").c_str(), O_RDWR);
-  write_descriptors(ep0fd, 0);
+  write_descriptors_accessory(ep0fd);
   ep1fd = open((tmpMountpoint / "ep1").c_str(), O_RDWR);
   ep2fd = open((tmpMountpoint / "ep2").c_str(), O_RDWR);
 
@@ -542,4 +573,8 @@ AaCommunicator::~AaCommunicator() {
     close(ep1fd);
   if (ep0fd != -1)
     close(ep0fd);
+  if (pd)
+    pcap_close(pd);
+  if (pdumper)
+    pcap_dump_close(pdumper);
 }

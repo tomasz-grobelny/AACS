@@ -1,0 +1,23 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message BluetoothProfile
+{
+    enum Enum
+    {
+        NONE = 0;
+        UNK_1 = 1;
+        A2DP = 2;
+        UNK_3 = 3;
+        HFP = 4;
+    }
+}
+
+message BluetoothChannel
+{
+    required string adapter_address = 1;
+    repeated BluetoothProfile.Enum available_profiles = 2;
+}

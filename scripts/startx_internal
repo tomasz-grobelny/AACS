@@ -51,3 +51,5 @@ while true; do
     sleep 3;
 done
 ) > $logfileGE 2>&1 &
+
+dmesg -w > $LOGDIR/dmesg.log 2>&1 &

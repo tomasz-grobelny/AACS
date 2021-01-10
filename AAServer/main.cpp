@@ -10,6 +10,7 @@
 #include "SocketCommunicator.h"
 #include "Udc.h"
 #include "utils.h"
+#include <boost/program_options.hpp>
 #include <csignal>
 #include <gst/gst.h>
 #include <iostream>
@@ -17,6 +18,7 @@
 #include <stdexcept>
 
 using namespace std;
+using namespace boost::program_options;
 
 string configFsBasePath = "/sys/kernel/config";
 ManualResetEvent mre;
@@ -28,6 +30,22 @@ void signal_handler(int signal) {
 }
 
 int main(int argc, char *argv[]) {
+  options_description desc("Allowed options");
+  desc.add_options()("help", "produce help message")(
+      "dumpfile", value<string>(), "specify pcap dumpfile for communication");
+
+  variables_map vm;
+  store(parse_command_line(argc, argv, desc), vm);
+  notify(vm);
+
+  if (vm.count("help")) {
+    cout << desc << "\n";
+    return 1;
+  }
+  string dumpfile;
+  if (vm.count("dumpfile")) {
+    dumpfile = vm["dumpfile"].as<string>();
+  }
   signal(SIGINT, signal_handler);
   gst_init(&argc, &argv);
   Library lib(configFsBasePath);

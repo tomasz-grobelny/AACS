@@ -11,17 +11,7 @@ pkg_check_modules (libusb REQUIRED IMPORTED_TARGET libusb-1.0)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${libusb_INCLUDE_DIR} include)
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS 
-    ../proto/MediaStreamType.proto
-    ../proto/MediaChannel.proto
-    ../proto/Channel.proto
-    ../proto/ChannelOpenRequest.proto
-    ../proto/ServiceDiscoveryRequest.proto
-    ../proto/ServiceDiscoveryResponse.proto
-    ../proto/MediaChannelSetupResponse.proto
-    ../proto/InputChannel.proto
-    ../proto/TouchConfig.proto
-)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../proto/CMakeLists.txt)
 
 add_executable(AAClient main.cpp 
     src/Library.cpp

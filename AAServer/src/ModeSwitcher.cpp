@@ -10,12 +10,12 @@
 #include "ModeSwitcher.h"
 #include "Udc.h"
 #include "descriptors.h"
-#include <linux/usb/functionfs.h>
 #include "utils.h"
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <fcntl.h>
 #include <iostream>
+#include <linux/usb/functionfs.h>
 #include <unistd.h>
 
 ssize_t ModeSwitcher::handleSwitchMessage(int fd, const void *buf,
@@ -65,7 +65,7 @@ void ModeSwitcher::handleSwitchToAccessoryMode(const Library &lib) {
   configuration.addFunction(ffs_function, "loopback_initial");
 
   auto fd = open((tmpMountpoint / "ep0").c_str(), O_RDWR);
-  write_descriptors(fd, FUNCTIONFS_ALL_CTRL_RECIP);
+  write_descriptors_default(fd);
 
   auto udc = Udc::getUdcById(lib, 0);
   initialGadget.enable(udc);

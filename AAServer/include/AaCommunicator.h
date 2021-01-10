@@ -14,6 +14,7 @@
 #include <memory>
 #include <mutex>
 #include <openssl/ossl_typ.h>
+#include <pcap/pcap.h>
 #include <thread>
 #include <vector>
 #pragma once
@@ -75,8 +76,12 @@ class AaCommunicator {
   std::condition_variable cv;
   std::vector<uint8_t> serviceDescriptor;
 
+  pcap_t *pd = nullptr;
+  pcap_dumper_t *pdumper = nullptr;
+  void logMessage(const Message &msg, bool direction);
+
 public:
-  AaCommunicator(const Library &_lib);
+  AaCommunicator(const Library &_lib, const std::string &dumpfile);
   void setup(const Udc &udc);
   boost::signals2::signal<void(const std::exception &ex)> error;
   boost::signals2::signal<void(int clientId, uint8_t channelNumber,

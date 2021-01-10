@@ -1,0 +1,39 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message SensorType
+{
+    enum Enum
+    {
+        None = 0;
+        Location = 1;
+        Compass = 2;
+        CarSpeed = 3;
+        Rpm = 4;
+        Odometer = 5;
+        FuelLevel = 6;
+        ParkingBrake = 7;
+        Gear = 8;
+        Diagnostics = 9;
+        NightData = 10;
+        Environment = 11;
+        HVAC = 12;
+        DrivingStatus = 13;
+        DeadReconing = 14;
+        Passenger = 15;
+        Door = 16;
+        Light = 17;
+        Tire = 18;
+        Accel = 19;
+        Gyro = 20;
+        GPS = 21;
+    }
+}
+
+message Sensor
+{
+    required SensorType.Enum type = 1;
+}

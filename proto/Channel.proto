@@ -4,12 +4,27 @@ syntax="proto2";
 
 package tag.aas;
 
+import "SensorChannel.proto";
 import "InputChannel.proto";
 import "MediaChannel.proto";
+import "MediaInputChannel.proto";
+import "BluetoothChannel.proto";
+import "NavigationChannel.proto";
+import "VendorExtensionChannel.proto";
+
+message UnknownChannel1 {}
+message UnknownChannel2 {}
 
 message Channel
 {
     required uint32 channel_id = 1;
+    optional SensorChannel sensor_channel = 2;
     optional MediaChannel media_channel = 3;
     optional InputChannel input_channel = 4;
+    optional MediaInputChannel media_input_channel = 5;
+    optional BluetoothChannel bluetooth_channel = 6;
+    optional NavigationChannel navigation_channel = 8;
+    optional UnknownChannel1 unknown_channel_1 = 10;
+    optional VendorExtensionChannel vendor_extension_channel = 12;
+    optional UnknownChannel2 unknown_channel_2 = 13;
 }

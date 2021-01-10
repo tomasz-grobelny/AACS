@@ -62,7 +62,7 @@ cd $SCRIPTSDIR/../build/AAServer/
 while true; do
     date;
     rm -f socket
-    ./AAServer;
+    ./AAServer --dumpfile=$LOGDIR/setup.$UUID/dump.pcap;
     sleep 1;
 done
 ) > $logfileAAS 2>&1 &

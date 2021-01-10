@@ -1,0 +1,12 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message VendorExtensionChannel
+{
+    required string name = 1;
+    repeated string package_white_list = 2;
+    optional bytes data = 3;
+}

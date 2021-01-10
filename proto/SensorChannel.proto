@@ -1,0 +1,12 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+import "Sensor.proto";
+
+package tag.aas;
+
+message SensorChannel
+{
+    repeated Sensor sensors = 1;
+}
