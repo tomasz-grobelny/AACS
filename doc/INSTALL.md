@@ -60,5 +60,6 @@ Development tools used:
     * Native Debug
     * vscode-clangd
     * Prettier - Code formatter
+* Wireshark - look for scripts/aasl.lua to decode AAServer's .pcap files created with dumpfile option
 
 Client Visual Studio Code can run both Windows and Linux.
