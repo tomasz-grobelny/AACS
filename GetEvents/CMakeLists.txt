@@ -12,12 +12,7 @@ include_directories(${X11_INCLUDE_DIR})
 include_directories(${X11_XTest_INCLUDE_PATH})
 include_directories(include)
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS 
-../proto/InputEvent.proto
-../proto/TouchEvent.proto
-../proto/TouchLocation.proto
-../proto/TouchAction.proto
-)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../proto/CMakeLists.txt)
 
 add_executable(GetEvents main.cpp 
     ${PROTO_SRCS}

@@ -5,8 +5,15 @@ syntax="proto2";
 package tag.aas;
 
 import "TouchConfig.proto";
+import "ButtonsEvent.proto";
 
 message InputChannel
 {
+    repeated ButtonCode.Enum available_buttons = 1;
     optional TouchConfig screen_config = 2;
+}
+
+message InputChannelHandshakeRequest
+{
+    repeated ButtonCode.Enum available_buttons = 1;
 }

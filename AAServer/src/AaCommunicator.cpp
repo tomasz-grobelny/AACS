@@ -19,6 +19,7 @@
 #include <boost/signals2.hpp>
 #include <cstdint>
 #include <fcntl.h>
+#include <fmt/core.h>
 #include <iostream>
 #include <linux/usb/functionfs.h>
 #include <openssl/err.h>
@@ -115,8 +116,10 @@ void AaCommunicator::handleServiceDiscoveryResponse(const void *buf,
           new VideoChannelHandler(ch.channel_id());
     } else if (ch.has_input_channel()) {
       channelTypeToChannelNumber[ChannelType::Input] = ch.channel_id();
+      auto available_buttons = ch.input_channel().available_buttons();
       channelHandlers[ch.channel_id()] =
-          new InputChannelHandler(ch.channel_id());
+          new InputChannelHandler(ch.channel_id(), {available_buttons.begin(),
+                                                    available_buttons.end()});
     } else {
       channelHandlers[ch.channel_id()] =
           new DefaultChannelHandler(ch.channel_id());
@@ -153,7 +156,9 @@ void AaCommunicator::handleChannelMessage(const Message &message) {
           this->channelHandlers[message.channel]->handleMessageFromHeadunit(
               message);
       if (!handled) {
-        throw std::runtime_error("Unknown packet");
+        throw aa_runtime_error(
+            fmt::format("Unknown packet on channel {0} with message type {1}",
+                        to_string(message.channel), to_string(messageType)));
       }
     } else {
       gotMessage(-1, message.channel,
@@ -188,17 +193,21 @@ std::vector<uint8_t>
 AaCommunicator::decryptMessage(const std::vector<uint8_t> &encryptedMsg) {
   ERR_clear_error();
 
-  auto ret = BIO_write(readBio, encryptedMsg.data(), encryptedMsg.size());
-  if (ret < 0) {
+  auto bytesWritten =
+      BIO_write(readBio, encryptedMsg.data(), encryptedMsg.size());
+  if (bytesWritten < 0) {
     throw std::runtime_error("BIO_write failed");
   }
-  char plainBuf[20000];
-  ret = SSL_read(ssl, plainBuf, 20000);
+  const int plainBufSize = 100 * 1024;
+  char plainBuf[plainBufSize];
+  auto ret = SSL_read(ssl, plainBuf, plainBufSize);
   if (ret < 0) {
     auto err = SSL_get_error(ssl, ret);
     ERR_print_errors_fp(stdout);
     auto message = "SSL_read failed: " + std::to_string(ret);
     message += " " + std::to_string(err);
+    message += " " + std::to_string(encryptedMsg.size());
+    message += " " + std::to_string(bytesWritten);
     if (err == SSL_ERROR_SSL)
       message += " "s + ERR_error_string(ERR_get_error(), NULL);
     throw std::runtime_error(message);
@@ -389,7 +398,7 @@ ssize_t AaCommunicator::getMessage(int fd, void *buf, size_t nbytes) {
     if ((flags & FrameType::Bulk) == FrameType::First) {
       offset += 4;
     }
-    auto length = BIO_read(writeBio, encBuf + offset, 20000);
+    auto length = BIO_read(writeBio, encBuf + offset, nbytes - offset);
     if (length < 0) {
       throw std::runtime_error("BIO_read error");
     }

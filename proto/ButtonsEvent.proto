@@ -1,0 +1,45 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message ButtonCode
+{
+    enum Enum
+    {
+        NONE = 0x00;
+        MICROPHONE_2 = 0x01;
+        MENU = 0x02;
+        HOME = 0x03;
+        BACK = 0x04;
+        PHONE = 0x05;
+        CALL_END = 0x06;
+        UP = 0x13;
+        DOWN = 0x14;
+        LEFT = 0x15;
+        RIGHT = 0x16;
+        ENTER = 0x17;
+        UNKNOWN_1 = 0x42;
+        MICROPHONE_1 = 0x54;
+        TOGGLE_PLAY = 0x55;
+        NEXT = 0x57;
+        PREV = 0x58;
+        PLAY = 0x7E;
+        PAUSE = 0x7F;
+        SCROLL_WHEEL = 65536;
+    }
+}
+
+message ButtonEvent
+{
+    required ButtonCode.Enum scan_code = 1;
+    required bool is_pressed = 2;
+    required uint32 meta = 3;
+    required bool long_press = 4;
+}
+
+message ButtonsEvent
+{
+    repeated ButtonEvent button_events = 1;
+}

@@ -1,14 +1,18 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
 #include "InputChannelHandler.h"
+#include "InputChannel.pb.h"
 #include "enums.h"
 #include "utils.h"
+#include <fmt/ranges.h>
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
-InputChannelHandler::InputChannelHandler(uint8_t channelId)
-    : ChannelHandler(channelId) {
+InputChannelHandler::InputChannelHandler(uint8_t channelId,
+                                         std::vector<int> availableButtons)
+    : ChannelHandler(channelId), available_buttons(availableButtons) {
   cout << "InputChannelHandler: " << (int)channelId << endl;
 }
 InputChannelHandler::~InputChannelHandler() {}
@@ -16,6 +20,15 @@ InputChannelHandler::~InputChannelHandler() {}
 void InputChannelHandler::sendHandshakeRequest() {
   std::vector<uint8_t> plainMsg;
   pushBackInt16(plainMsg, InputChannelMessageType::HandshakeRequest);
+  tag::aas::InputChannelHandshakeRequest handshakeRequest;
+  cout << fmt::format("Supported buttons ({}): {}", available_buttons.size(),
+                      available_buttons)
+       << endl;
+  int bufSize = handshakeRequest.ByteSize();
+  uint8_t buffer[bufSize];
+  if (!handshakeRequest.SerializeToArray(buffer, bufSize))
+    throw aa_runtime_error("handshakeRequest.SerializeToArray failed");
+  copy(buffer, buffer + bufSize, std::back_inserter(plainMsg));
   sendToHeadunit(channelId, FrameType::Bulk | EncryptionType::Encrypted,
                  plainMsg);
 }

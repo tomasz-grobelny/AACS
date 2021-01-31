@@ -5,9 +5,11 @@ syntax="proto2";
 package tag.aas;
 
 import "TouchEvent.proto";
+import "ButtonsEvent.proto";
 
 message InputEvent
 {
-    required uint64 timestamp = 1;
+    optional uint64 timestamp = 1;
     optional TouchEvent touch_event = 3;
+    optional ButtonsEvent buttons_event = 4;
 }

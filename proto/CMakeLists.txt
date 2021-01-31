@@ -15,4 +15,9 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
     ../proto/MediaInputChannel.proto
     ../proto/BluetoothChannel.proto
     ../proto/AudioConfig.proto
-)
+    ../proto/InputEvent.proto
+    ../proto/TouchEvent.proto
+    ../proto/ButtonsEvent.proto
+    ../proto/TouchLocation.proto
+    ../proto/TouchAction.proto
+    )
