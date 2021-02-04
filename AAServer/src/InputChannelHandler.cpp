@@ -24,6 +24,8 @@ void InputChannelHandler::sendHandshakeRequest() {
   cout << fmt::format("Supported buttons ({}): {}", available_buttons.size(),
                       available_buttons)
        << endl;
+  for (auto ab : available_buttons)
+    handshakeRequest.add_available_buttons((tag::aas::ButtonCode_Enum)ab);
   int bufSize = handshakeRequest.ByteSize();
   uint8_t buffer[bufSize];
   if (!handshakeRequest.SerializeToArray(buffer, bufSize))

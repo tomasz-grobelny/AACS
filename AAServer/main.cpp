@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
   gst_init(&argc, &argv);
   Library lib(configFsBasePath);
   ModeSwitcher::handleSwitchToAccessoryMode(lib);
-  AaCommunicator aac(lib);
+  AaCommunicator aac(lib, dumpfile);
   aac.setup(Udc::getUdcById(lib, 0));
   mutex error_mutex;
   aac.error.connect([&](const std::exception &ex) {
