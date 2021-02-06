@@ -1,19 +1,22 @@
 #!/bin/bash
-ID=`whoami`;
 SCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-HOMEDIR=`eval echo ~$ID`;
-UUID=`cat $HOMEDIR/logs/setup.log | tail -n 1`;
-logfileGST="$HOMEDIR/logs/setup.$UUID/GST.log"
-logfileSM="$HOMEDIR/logs/setup.$UUID/SM.log"
-logfileGE="$HOMEDIR/logs/setup.$UUID/GE.log"
-LOGDIR="$HOMEDIR/logs/setup.$UUID/"
+. $SCRIPTSDIR/id
+. $SCRIPTSDIR/common
 
 cd $HOMEDIR
 date
 echo $UUID
-echo $logfileSM
 
-anbox session-manager --single-window --window-size=800,480 > $logfileSM 2>&1 &
+(
+mkdir /dev/binderfs/
+mount binder -t binder /dev/binderfs/
+ln -s /dev/binderfs/binder /dev/binder
+$HOMEDIR/anbox/scripts/anbox-bridge.sh start
+anbox container-manager --data-path=$HOMEDIR/anbox-data/ --android-image=$HOMEDIR/android.img --privileged --container-network-gateway=192.168.250.1 --container-network-address=192.168.250.2 --use-rootfs-overlay > $LOGDIR/cont_mgr.log 2>&1 &
+sleep 10
+export EGL_PLATFORM=x11
+anbox session-manager --single-window --window-size=800,480
+) > $LOGDIR/anbox_start.log 2>&1 &
 
 (
 date
@@ -23,6 +26,7 @@ while true; do
     anbox launch --package=net.osmand --component=net.osmand.plus.activities.MapActivity
     if [[ "$?" == "0" ]]; then
 	echo "Start OsmAnd end"
+	date
 	break;
     fi
     sleep 3;
@@ -39,7 +43,7 @@ while true; do
     gst-launch-1.0 ximagesrc show-pointer=false use-damage=false xname="Anbox - Android in a Box" ! videoconvert ! video/x-raw,width=800,height=480,pixel-aspect-ratio=1/1,framerate=30/1,format=I420 ! aavideosink socketName=socket
     sleep 3;
 done
-) > $logfileGST 2>&1 &
+) > $LOGDIR/GST.log 2>&1 &
 
 (
 cd $SCRIPTSDIR/../build/GetEvents/
@@ -50,6 +54,6 @@ while true; do
     ./GetEvents ../AAServer/socket "Anbox - Android in a Box"
     sleep 3;
 done
-) > $logfileGE 2>&1 &
+) > $LOGDIR/GetEvents.log 2>&1 &
 
 dmesg -w > $LOGDIR/dmesg.log 2>&1 &

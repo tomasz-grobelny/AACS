@@ -28,7 +28,8 @@ ssize_t checkError(ssize_t ret, const std::vector<int> &ignoredErrors) {
              ignoredErrors.end()) {
     return 0;
   } else {
-    throw aa_runtime_error("checkError: " + to_string(ret));
+    throw aa_runtime_error("checkError: " + to_string(ret) + " " +
+                           to_string(errno));
   }
 }
 

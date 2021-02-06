@@ -1,28 +1,16 @@
 #!/bin/bash
 SCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 . $SCRIPTSDIR/id
-HOMEDIR=`eval echo ~$ID`;
-LOGDIR=$HOMEDIR/logs/
-mkdir -p $LOGDIR
-touch $LOGDIR/setup.log
-UUID=`cat $LOGDIR/setup.log|wc -l`.`openssl rand -hex 12`
-echo "$UUID" >> $LOGDIR/setup.log
-logfileAAS="$LOGDIR/setup.$UUID/Server.log"
-logfileAAC="$LOGDIR/setup.$UUID/Client.log"
-logfileX0="$LOGDIR/setup.$UUID/X0.log"
-logfileCM="$LOGDIR/setup.$UUID/CM.log"
-logfileGST="$LOGDIR/setup.$UUID/GST.log"
-mkdir $LOGDIR/setup.$UUID
+. $SCRIPTSDIR/common
+
+echo $UUID
 
 modprobe libcomposite
-mkdir /dev/binderfs/
-mount binder -t binder /dev/binderfs/
-ln -s /dev/binderfs/binder /dev/binder
+
 # max and default size for socket messages = 2MB (may need to be increased in case of higher resolution)
 sysctl net.core.wmem_max=2097152
 sysctl net.core.wmem_default=2097152
-$HOMEDIR/anbox/scripts/anbox-bridge.sh start
-anbox container-manager --data-path=$HOMEDIR/anbox-data/ --android-image=$HOMEDIR/android.img --privileged --container-network-gateway=192.168.250.1 --container-network-address=192.168.250.2 --use-rootfs-overlay > $logfileCM 2>&1 &
+
 (
 while true; do
     lxc-attach -P $HOMEDIR/anbox-data/containers/ -n default ip r a default via 192.168.250.1
@@ -31,7 +19,7 @@ while true; do
     fi
     sleep 10;
 done
-) > $LOGDIR/setup.$UUID/attach.log 2>&1 &
+) > $LOGDIR/attach.log 2>&1 &
 
 (
 export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/`id -u $ID`/bus
@@ -40,14 +28,14 @@ do
     echo "$line"
     dbus-send --session --dest=org.anbox --type=method_call --print-reply /org/anbox org.anbox.Gps.PushSentence "string:$line"
 done < <(gpspipe -r|stdbuf -i0 -o0 -e0 grep "\$GP")
-) > $LOGDIR/setup.$UUID/gpspush.log 2>&1 &
+) > $LOGDIR/gpspush.log 2>&1 &
 
 (
 while true; do
     x0vncserver -passwordfile $HOMEDIR/.vnc/passwd -display :0
     sleep 10;
 done
-) > $logfileX0 2>&1 &
+) > $LOGDIR/X0.log 2>&1 &
 
 devMode=`gpioget gpiochip0 62`; #connect pin1 and pin7 together
 if [[ "$devMode" != "0" ]]; then
@@ -62,10 +50,10 @@ cd $SCRIPTSDIR/../build/AAServer/
 while true; do
     date;
     rm -f socket
-    ./AAServer --dumpfile=$LOGDIR/setup.$UUID/dump.pcap;
+    ./AAServer --dumpfile=$LOGDIR/dump.pcap;
     sleep 1;
 done
-) > $logfileAAS 2>&1 &
+) > $LOGDIR/Server.log 2>&1 &
 
 (
 cd $SCRIPTSDIR/../build/AAClient/
@@ -74,7 +62,7 @@ while true; do
     date;
     ./AAClient ../AAServer/socket;
 done
-) > $logfileAAC 2>&1 &
+) > $LOGDIR/Client.log 2>&1 &
 
 (
 while true; do

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+HOMEDIR=`eval echo ~$ID`;
+ALLLOGSDIR=$HOMEDIR/logs/
+mkdir -p $ALLLOGSDIR
+touch $ALLLOGSDIR/setup.log
+UUID_RAND=`cat $ALLLOGSDIR/setup.log|wc -l`.`openssl rand -hex 12`
+echo "AACS_LOGDIR: $UUID_RAND" > /dev/kmsg
+UUID=`dmesg|grep "AACS_LOGDIR: "|head -n 1|tr " " "\n"|grep -A 1 AACS_LOGDIR|tail -n 1`
+if [[ "$UUID_RAND" == "$UUID" ]]; then
+    echo "$UUID" >> $ALLLOGSDIR/setup.log
+fi
+LOGDIR=$ALLLOGSDIR/setup.$UUID
+mkdir $LOGDIR
+chmod -R 777 $LOGDIR
