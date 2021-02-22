@@ -11,6 +11,8 @@
 #include <gst/gstutils.h>
 #include <iostream>
 
+#include <linux/types.h>
+
 using namespace std;
 
 #define GSTCHECK(x) GstCheck(x, __LINE__)

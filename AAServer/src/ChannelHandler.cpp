@@ -4,6 +4,7 @@
 #include "ChannelOpenRequest.pb.h"
 #include "enums.h"
 #include "utils.h"
+#include <linux/types.h>
 
 ChannelHandler::ChannelHandler(uint8_t _channelId) : channelId(_channelId) {}
 ChannelHandler::~ChannelHandler() {}
