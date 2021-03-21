@@ -2,6 +2,7 @@
 
 #include "Library.h"
 #include "utils.h"
+#include <ServerUtils.h>
 
 Library::Library(std::string basePath) {
   checkUsbgError(usbg_init(basePath.c_str(), &state));

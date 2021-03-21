@@ -6,18 +6,10 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <usbg/usbg.h>
 #include <vector>
 //#include "backward.hpp"
 
 using namespace std;
-
-void checkUsbgError(int returnValue) {
-  if (returnValue != USBG_SUCCESS) {
-    throw runtime_error(string("Libusbg error: ") +
-                        usbg_strerror((usbg_error)returnValue));
-  }
-}
 
 ssize_t checkError(ssize_t ret, const std::vector<int> &ignoredErrors) {
   if (ret > 0) {
@@ -80,4 +72,10 @@ void aa_runtime_error::printTrace(std::ostream &ostr) const {
   p.color_mode = backward::ColorMode::always;
   p.address = true;
   p.print(st, ostr);
+}
+
+void GstCheck(gboolean returnCode, int line) {
+  if (returnCode != TRUE)
+    throw runtime_error("GStreamer function call failed at line " +
+                        to_string(line));
 }

@@ -16,3 +16,6 @@ echo -en "odroid\nodroid\nn\n"|vncpasswd
 echo "ID=$ID" > $SCRIPTSDIR/id
 mkdir -p $HOMEDIR/.config/xfce4/xfconf/xfce-perchannel-xml/
 cp -f $SCRIPTSDIR/xfce4-screensaver.xml $HOMEDIR/.config/xfce4/xfconf/xfce-perchannel-xml/
+ln -s $SCRIPTSDIR/base.ini $HOMEDIR/snowmix/
+MIXERFORMAT='video/x-raw,format=(string)BGRA,width=(int)800,height=(int)480,pixel-aspect-ratio=(fraction)1/1,interlaced=(boolean)false'
+gst-launch-1.0 -q -e videotestsrc num-buffers=1 pattern=10 ! $MIXERFORMAT ! filesink location=$HOMEDIR/snowmix/dead_frame.bgra

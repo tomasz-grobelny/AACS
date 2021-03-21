@@ -7,9 +7,11 @@ find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Protobuf REQUIRED)
 pkg_check_modules (libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+pkg_check_modules (gst REQUIRED IMPORTED_TARGET gstreamer-base-1.0)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${libusb_INCLUDE_DIR} include)
+include_directories(${gst_INCLUDE_DIRS})
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../proto/CMakeLists.txt)
 
@@ -17,7 +19,7 @@ add_executable(AAClient main.cpp
     src/Library.cpp
     src/Device.cpp
     src/AaCommunicator.cpp
-    src/utils.cpp
+    ../src/utils.cpp
     src/Message.cpp
     src/ChannelHandler.cpp
     src/DefaultChannelHandler.cpp
@@ -28,6 +30,7 @@ add_executable(AAClient main.cpp
     )
 target_link_libraries(AAClient Threads::Threads)
 target_link_libraries(AAClient PkgConfig::libusb)
+target_link_libraries(AAClient PkgConfig::gst)
 target_link_libraries(AAClient OpenSSL::SSL OpenSSL::Crypto)
 target_link_libraries(AAClient protobuf::libprotobuf)
 

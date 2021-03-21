@@ -12,17 +12,19 @@ mkdir /dev/binderfs/
 mount binder -t binder /dev/binderfs/
 ln -s /dev/binderfs/binder /dev/binder
 $HOMEDIR/anbox/scripts/anbox-bridge.sh start
-anbox container-manager --data-path=$HOMEDIR/anbox-data/ --android-image=$HOMEDIR/android.img --privileged --container-network-gateway=192.168.250.1 --container-network-address=192.168.250.2 --use-rootfs-overlay > $LOGDIR/cont_mgr.log 2>&1 &
+anbox container-manager --data-path=$HOMEDIR/anbox-data/ --android-image=$HOMEDIR/android.img --privileged --container-network-gateway=192.168.250.1 --container-network-address=192.168.250.2 --use-rootfs-overlay --daemon > $LOGDIR/cont_mgr.log 2>&1 &
 sleep 10
 export EGL_PLATFORM=x11
 anbox session-manager --single-window --window-size=800,480
 ) > $LOGDIR/anbox_start.log 2>&1 &
 
 (
+echo Start thread OsmAnd
 date
 while (( "`xwininfo -root -tree|grep anbox|sed "s/ /\n/g"|grep -v "^$"|wc -l`" == "0" )); do sleep 1; done
 while true; do
     echo "Start OsmAnd begin"
+    date
     anbox launch --package=net.osmand --component=net.osmand.plus.activities.MapActivity
     if [[ "$?" == "0" ]]; then
 	echo "Start OsmAnd end"
@@ -33,14 +35,22 @@ while true; do
 done
 ) > $LOGDIR/osmand_launch.log 2>&1 &
 
+exit
 (
 cd $SCRIPTSDIR/../build/AAServer/
 date
+width=800
+height=480
+framerate="30/1"
+CONTROL_PIPE=/tmp/aacs_feed1
+SHMSIZE=`echo "$width * $height * 4 * 22"|bc`
+SHMSINK="shmsink wait-for-connection=0 sync=true shm-size=$SHMSIZE socket-path=$CONTROL_PIPE"
+MIXERFORMAT="video/x-raw, format=BGRA, pixel-aspect-ratio=1/1, interlace-mode=progressive, framerate=$framerate, width=$width, height=$height"
+CONVERT="videoconvert ! videorate ! videoscale ! videoconvert"
 while (( "`xwininfo -root -tree|grep anbox|sed "s/ /\n/g"|grep -v "^$"|wc -l`" == "0" )); do sleep 1; done
 while true; do
     sudo chmod 777 socket
-    export GST_PLUGIN_PATH=$SCRIPTSDIR/../build/AAVideoSink/
-    gst-launch-1.0 ximagesrc show-pointer=false use-damage=false xname="Anbox - Android in a Box" ! videoconvert ! video/x-raw,width=800,height=480,pixel-aspect-ratio=1/1,framerate=30/1,format=I420 ! aavideosink socketName=socket
+    gst-launch-1.0 ximagesrc show-pointer=false use-damage=false xname="Anbox - Android in a Box" ! $CONVERT ! $MIXERFORMAT ! $SHMSINK
     sleep 3;
 done
 ) > $LOGDIR/GST.log 2>&1 &

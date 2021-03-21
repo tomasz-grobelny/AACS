@@ -34,6 +34,7 @@ ssize_t ModeSwitcher::handleSwitchMessage(int fd, const void *buf,
         }
       } else if (setup.bRequest == 53) {
         std::cout << "Got 53, exit" << std::endl;
+        return 0;
       }
     } else {
       std::cout << std::string((char *)buf, nbytes) << std::endl;
@@ -74,12 +75,20 @@ void ModeSwitcher::handleSwitchToAccessoryMode(const Library &lib) {
   auto bufSize = 4 * eSize;
   uint8_t buffer[bufSize];
   for (;;) {
+    std::cout << "pre read" << std::endl;
     auto length = checkError(read(fd, buffer, bufSize), {EINTR, EAGAIN});
+    std::cout << "post read: " << length << std::endl;
     if (length == 0)
       continue;
     if (length == -1)
       break;
+    std::cout << "pre hSM" << std::endl;
     checkError(handleSwitchMessage(fd, buffer, length), {EINTR, EAGAIN});
+    std::cout << "post hSM: " << length << std::endl;
+    if (length == -1)
+      break;
   }
+  std::cout << "pre close fd" << std::endl;
   close(fd);
+  std::cout << "post close fd" << std::endl;
 }

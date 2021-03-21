@@ -13,3 +13,4 @@ fi
 LOGDIR=$ALLLOGSDIR/setup.$UUID
 mkdir $LOGDIR
 chmod -R 777 $LOGDIR
+SNOWMIX=/usr/lib/Snowmix-0.5.1.1/

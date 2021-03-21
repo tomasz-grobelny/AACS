@@ -28,9 +28,10 @@ Android Auto Protocol is not documented. However, it has been reverse engineered
 There are several components that comprise AACS:
 * AAServer is the component responsible for communication with car's headunit. When USB OTG connection is available AAServer starts Android Auto communication with headunit and start listening on a Unix socket for client connections.
 * AAClient is the component responsible for communication with mobile device running Andoid Auto. It starts connection to AAServer to get available service description and then forwards all the traffic to AAServer.
-* AAVideoSink is a GStreamer plugin that connects to a socket exposed by AAServer which allows to stream any content to the headunit.
 * GetEvents is a small tool that listens for touch events from AAServer and uses XTest to forward them to specified application.
 * more to come - several more components integrating AACS with generic system components are possible such as GStreamer audio sink, audio/video source, etc.
+
+AACS depends on Snowmix for video mixing.
 
 # Usage ideas
 So what exactly could be displayed on headunit? Here are a few ideas:

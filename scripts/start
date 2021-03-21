@@ -12,6 +12,13 @@ sysctl net.core.wmem_max=2097152
 sysctl net.core.wmem_default=2097152
 
 (
+    export HOME=$HOMEDIR
+    export SNOWMIX=/usr/lib/Snowmix-0.5.1.1/
+    cd $HOMEDIR/snowmix/
+    snowmix base.ini
+) > $LOGDIR/snowmix.log 2>&1 < /dev/zero  &
+
+(
 while true; do
     lxc-attach -P $HOMEDIR/anbox-data/containers/ -n default ip r a default via 192.168.250.1
     if [[ "$?" == "0" ]]; then

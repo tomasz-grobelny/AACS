@@ -4,13 +4,14 @@
 #include "Library.h"
 #include "Udc.h"
 #include "utils.h"
+#include <ServerUtils.h>
 #include <iostream>
 
 using namespace std;
 
 Gadget::Gadget(const Library &lib, int vid, int pid, const string &name) {
-  checkUsbgError(usbg_create_gadget_vid_pid(lib.getState(), name.c_str(),
-                                            vid, pid, &gadget));
+  checkUsbgError(usbg_create_gadget_vid_pid(lib.getState(), name.c_str(), vid,
+                                            pid, &gadget));
 }
 
 Gadget::~Gadget() {

@@ -49,18 +49,6 @@ AaCommunicator::AaCommunicator(const Device &dev,
 
 AaCommunicator::~AaCommunicator() {}
 
-#include <iomanip>
-#include <iostream>
-std::string hexStr(uint8_t *data, int len) {
-  std::stringstream ss;
-  ss << std::hex;
-
-  for (int i(0); i < len; ++i)
-    ss << std::setw(2) << std::setfill('0') << (int)data[i] << " ";
-
-  return ss.str();
-}
-
 void AaCommunicator::setup() {
   cout << dec;
   cout << "setup" << endl;

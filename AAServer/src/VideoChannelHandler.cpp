@@ -13,14 +13,6 @@
 
 using namespace std;
 
-#define GSTCHECK(x) GstCheck(x, __LINE__)
-
-static void GstCheck(gboolean returnCode, int line) {
-  if (returnCode != TRUE)
-    throw runtime_error("GStreamer function call failed at line " +
-                        to_string(line));
-}
-
 GstFlowReturn VideoChannelHandler::new_sample(GstElement *sink,
                                               VideoChannelHandler *_this) {
   static bool firstSample = true;
@@ -71,12 +63,6 @@ VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
   g_object_set(app_sink, "emit-signals", TRUE, NULL);
   g_signal_connect(app_sink, "new-sample", G_CALLBACK(new_sample), this);
 
-  auto videotestsrc = gst_element_factory_make("videotestsrc", "videotestsrc");
-  g_object_set(videotestsrc, "pattern", 0, NULL);
-  g_object_set(G_OBJECT(videotestsrc), "is-live", TRUE, NULL);
-  inputSelector = gst_element_factory_make("input-selector", "input-selector");
-
-  g_object_set(G_OBJECT(inputSelector), "sync-mode", 1, NULL);
 
   auto queue = gst_element_factory_make("queue", "queue");
   auto videoconvert = gst_element_factory_make("videoconvert", "videoconvert");
@@ -88,6 +74,9 @@ VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
       "video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "profile",
       G_TYPE_STRING, "baseline", "width", G_TYPE_INT, 800, "height", G_TYPE_INT,
       480, "framerate", GST_TYPE_FRACTION, 30, 1, NULL);
+  auto capsfilter_h264 =
+      gst_element_factory_make("capsfilter", "capsfilter_h264");
+  g_object_set(capsfilter_h264, "caps", h264caps, NULL);
   auto rawcaps =
       gst_caps_new_simple("video/x-raw", "width", G_TYPE_INT, 800, "height",
                           G_TYPE_INT, 480, "framerate", GST_TYPE_FRACTION, 30,
@@ -95,27 +84,33 @@ VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
   auto capsfilter_pre =
       gst_element_factory_make("capsfilter", "capsfilter_pre");
   g_object_set(capsfilter_pre, "caps", rawcaps, NULL);
-  auto capsfilter_post =
-      gst_element_factory_make("capsfilter", "capsfilter_post");
-  g_object_set(capsfilter_post, "caps", rawcaps, NULL);
 
-  gst_bin_add_many(GST_BIN(pipeline), videotestsrc, videoconvert, videoscale,
-                   videorate, capsfilter_pre, inputSelector, capsfilter_post,
-                   queue, x264enc, app_sink, NULL);
+  auto shmsrc = gst_element_factory_make("shmsrc", "shmsrc");
+  g_object_set(G_OBJECT(shmsrc), "socket-path", "/tmp/aacs_mixer", NULL);
+  g_object_set(G_OBJECT(shmsrc), "is-live", TRUE, NULL);
+  g_object_set(G_OBJECT(shmsrc), "do-timestamp", TRUE, NULL);
+  auto queue_snowmix = gst_element_factory_make("queue", "queue_snowmix");
+  g_object_set(G_OBJECT(queue_snowmix), "leaky", 2, NULL);
+  g_object_set(G_OBJECT(queue_snowmix), "max-size-buffers", 2, NULL);
+  auto snowmixcaps =
+      gst_caps_new_simple("video/x-raw", "width", G_TYPE_INT, 800, "height",
+                          G_TYPE_INT, 480, "framerate", GST_TYPE_FRACTION, 30,
+                          1, "format", G_TYPE_STRING, "BGRA", NULL);
+  auto capsfilter_snowmix =
+      gst_element_factory_make("capsfilter", "capsfilter_snowmix");
+  g_object_set(capsfilter_snowmix, "caps", snowmixcaps, NULL);
 
-  GSTCHECK(gst_element_link_many(videotestsrc, videoconvert, videoscale,
-                                 videorate, capsfilter_pre, NULL));
+  gst_bin_add_many(GST_BIN(pipeline), shmsrc, queue_snowmix, capsfilter_snowmix,
+                   videoconvert, videoscale, videorate, capsfilter_pre, queue,
+                   x264enc, capsfilter_h264, app_sink, NULL);
 
-  sink_request_pad = gst_element_get_request_pad(inputSelector, "sink_%u");
-  auto src_static_pad = gst_element_get_static_pad(capsfilter_pre, "src");
-
-  if (gst_pad_link(src_static_pad, sink_request_pad) != GST_PAD_LINK_OK)
-    throw runtime_error("gst_pad_link VideoChannelHandler failed");
-  GSTCHECK(gst_element_link_many(inputSelector, capsfilter_post, queue, x264enc,
-                                 NULL));
-  GSTCHECK(gst_element_link_filtered(x264enc, app_sink, h264caps));
+  GSTCHECK(gst_element_link_many(shmsrc, queue_snowmix, capsfilter_snowmix,
+                                 videoconvert, videoscale, videorate,
+                                 capsfilter_pre, queue, x264enc,
+                                 capsfilter_h264, app_sink, NULL));
   gst_caps_unref(h264caps);
   gst_caps_unref(rawcaps);
+  gst_caps_unref(snowmixcaps);
 
   auto bus = gst_element_get_bus(pipeline);
   gst_bus_add_signal_watch(bus);
@@ -127,108 +122,6 @@ VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
 
 VideoChannelHandler::~VideoChannelHandler() {}
 
-void VideoChannelHandler::createAppSource(int clientId, uint8_t priority) {
-  gst_element_set_state(pipeline, GST_STATE_PAUSED);
-
-  auto app_source = gst_element_factory_make(
-      "appsrc", ("app_source_" + to_string(clientId)).c_str());
-  auto srccaps = gst_caps_new_simple("video/x-h264", "stream-format",
-                                     G_TYPE_STRING, "byte-stream", NULL);
-  g_object_set(app_source, "caps", srccaps, NULL);
-  g_object_set(app_source, "format", GST_FORMAT_TIME, NULL);
-  g_object_set(app_source, "is-live", TRUE, NULL);
-  gst_caps_unref(srccaps);
-
-  auto h264parse = gst_element_factory_make(
-      "h264parse", ("h264parse_" + to_string(clientId)).c_str());
-  auto avdec_h264 = gst_element_factory_make(
-      "avdec_h264", ("avdec_h264_" + to_string(clientId)).c_str());
-
-  auto videoscale = gst_element_factory_make(
-      "videoscale", ("videoscale_" + to_string(clientId)).c_str());
-  auto videorate = gst_element_factory_make(
-      "videorate", ("videorate_" + to_string(clientId)).c_str());
-  auto videoconvert = gst_element_factory_make(
-      "videoconvert", ("videoconvert_" + to_string(clientId)).c_str());
-
-  auto rawcaps =
-      gst_caps_new_simple("video/x-raw", "width", G_TYPE_INT, 800, "height",
-                          G_TYPE_INT, 480, "framerate", GST_TYPE_FRACTION, 30,
-                          1, "format", G_TYPE_STRING, "I420", NULL);
-  auto capsfilter_pre = gst_element_factory_make(
-      "capsfilter", ("capsfilter_pre_" + to_string(clientId)).c_str());
-  g_object_set(capsfilter_pre, "caps", rawcaps, NULL);
-
-  gst_bin_add_many(GST_BIN(pipeline), app_source, h264parse, avdec_h264,
-                   videoconvert, videoscale, videorate, capsfilter_pre, NULL);
-  GSTCHECK(gst_element_link_many(app_source, h264parse, avdec_h264,
-                                 videoconvert, videoscale, videorate,
-                                 capsfilter_pre, NULL));
-
-  auto sink_request_pad = gst_element_get_request_pad(inputSelector, "sink_%u");
-  auto src_static_pad = gst_element_get_static_pad(capsfilter_pre, "src");
-  if (gst_pad_link(src_static_pad, sink_request_pad) != GST_PAD_LINK_OK)
-    throw runtime_error("gst_pad_link createAppSource failed");
-
-  g_object_set(inputSelector, "active-pad", sink_request_pad, NULL);
-  clientData[clientId].app_source = app_source;
-  clientData[clientId].startTimestamp = 0;
-  clientData[clientId].priority = priority;
-  clientData[clientId].sink_request_pad = sink_request_pad;
-  clientData[clientId].src_static_pad = src_static_pad;
-
-  gst_element_set_state(pipeline, GST_STATE_PLAYING);
-}
-
-void VideoChannelHandler::createRawAppSource(int clientId, uint8_t priority) {
-  gst_element_set_state(pipeline, GST_STATE_PAUSED);
-
-  auto app_source = gst_element_factory_make(
-      "appsrc", ("app_source_" + to_string(clientId)).c_str());
-  auto srccaps = gst_caps_new_simple(
-      "video/x-raw", "width", G_TYPE_INT, 800, "height", G_TYPE_INT, 480,
-      "framerate", GST_TYPE_FRACTION, 30, 1, "pixel-aspect-ratio",
-      GST_TYPE_FRACTION, 1, 1, "format", G_TYPE_STRING, "I420", NULL);
-  g_object_set(app_source, "caps", srccaps, NULL);
-  g_object_set(app_source, "format", GST_FORMAT_TIME, NULL);
-  g_object_set(app_source, "is-live", TRUE, NULL);
-  gst_caps_unref(srccaps);
-
-  auto videoscale = gst_element_factory_make(
-      "videoscale", ("videoscale_" + to_string(clientId)).c_str());
-  auto videorate = gst_element_factory_make(
-      "videorate", ("videorate_" + to_string(clientId)).c_str());
-  auto videoconvert = gst_element_factory_make(
-      "videoconvert", ("videoconvert_" + to_string(clientId)).c_str());
-
-  auto rawcaps =
-      gst_caps_new_simple("video/x-raw", "width", G_TYPE_INT, 800, "height",
-                          G_TYPE_INT, 480, "framerate", GST_TYPE_FRACTION, 30,
-                          1, "format", G_TYPE_STRING, "I420", NULL);
-  auto capsfilter_pre = gst_element_factory_make(
-      "capsfilter", ("capsfilter_pre_" + to_string(clientId)).c_str());
-  g_object_set(capsfilter_pre, "caps", rawcaps, NULL);
-
-  gst_bin_add_many(GST_BIN(pipeline), app_source, videoconvert, videoscale,
-                   videorate, capsfilter_pre, NULL);
-  GSTCHECK(gst_element_link_many(app_source, videoconvert, videoscale,
-                                 videorate, capsfilter_pre, NULL));
-
-  auto sink_request_pad = gst_element_get_request_pad(inputSelector, "sink_%u");
-  auto src_static_pad = gst_element_get_static_pad(capsfilter_pre, "src");
-  if (gst_pad_link(src_static_pad, sink_request_pad) != GST_PAD_LINK_OK)
-    throw runtime_error("gst_pad_link createRawAppSource failed");
-
-  g_object_set(inputSelector, "active-pad", sink_request_pad, NULL);
-  clientData[clientId].app_source = app_source;
-  clientData[clientId].startTimestamp = 0;
-  clientData[clientId].priority = priority;
-  clientData[clientId].sink_request_pad = sink_request_pad;
-  clientData[clientId].src_static_pad = src_static_pad;
-
-  gst_element_set_state(pipeline, GST_STATE_PLAYING);
-}
-
 void VideoChannelHandler::openChannel() {
   channelOpened = true;
   ChannelHandler::openChannel();
@@ -238,25 +131,6 @@ void VideoChannelHandler::openChannel() {
 }
 
 void VideoChannelHandler::disconnected(int clientId) {
-  gst_element_set_state(pipeline, GST_STATE_PAUSED);
-  auto appsrc = clientData[clientId].app_source;
-  auto sink_to_unlink = clientData[clientId].sink_request_pad;
-  auto src_to_unlink = clientData[clientId].src_static_pad;
-  clientData.erase(clientId);
-  GstFlowReturn ret;
-  g_signal_emit_by_name(appsrc, "end-of-stream", &ret);
-  auto next_channel = boost::range::max_element(clientData, [](auto a1,
-                                                               auto a2) {
-    return a1.second.priority < a2.second.priority ||
-           (a1.second.priority == a2.second.priority && a1.first < a2.first);
-  });
-  auto srp = next_channel != clientData.end()
-                 ? next_channel->second.sink_request_pad
-                 : sink_request_pad;
-  g_object_set(inputSelector, "active-pad", srp, NULL);
-  gst_pad_unlink(src_to_unlink, sink_to_unlink);
-  gst_bin_remove_many(GST_BIN(pipeline), appsrc, NULL);
-  gst_element_set_state(pipeline, GST_STATE_PLAYING);
 }
 
 void VideoChannelHandler::sendSetupRequest() {
@@ -313,56 +187,10 @@ bool VideoChannelHandler::handleMessageFromHeadunit(const Message &message) {
   return messageHandled;
 }
 
-void VideoChannelHandler::pushDataToPipeline(int clientId, uint64_t ts,
-                                             const vector<uint8_t> &data) {
-  auto buffer = gst_buffer_new_and_alloc(data.size());
-  if (ts) {
-    GST_BUFFER_TIMESTAMP(buffer) = ts;
-  }
-
-  GstMapInfo map;
-  gst_buffer_map(buffer, &map, GST_MAP_WRITE);
-  copy(data.begin(), data.end(), map.data);
-  gst_buffer_unmap(buffer, &map);
-
-  GstFlowReturn ret;
-  g_signal_emit_by_name(clientData[clientId].app_source, "push-buffer", buffer,
-                        &ret);
-  gst_buffer_unref(buffer);
-
-  if (ret != GST_FLOW_OK) {
-    throw runtime_error("push-buffer failed");
-  }
-}
-
 bool VideoChannelHandler::handleMessageFromClient(int clientId,
                                                   uint8_t channelId,
                                                   bool specific,
                                                   const vector<uint8_t> &data) {
-  if (data.size() == 0)
-    return true;
-  auto msgType = data[0];
-  if (msgType == 0x02) {
-    int priority = data[1];
-    createAppSource(clientId, priority);
-    pushDataToPipeline(clientId, 0,
-                       vector<uint8_t>(data.begin() + 2, data.end()));
-    return true;
-  } else if (msgType == 0x04) {
-    int priority = data[1];
-    createRawAppSource(clientId, priority);
-    pushDataToPipeline(clientId, 0,
-                       vector<uint8_t>(data.begin() + 2, data.end()));
-    return true;
-  } else if (msgType == 0x03) {
-    auto ts = bytesToUInt64(data, 1);
-    if (clientData[clientId].startTimestamp == 0) {
-      clientData[clientId].startTimestamp = ts - 100'000;
-    }
-    auto localTs = (ts - clientData[clientId].startTimestamp);
-    pushDataToPipeline(clientId, localTs * 1000,
-                       vector(data.begin() + 1 + 8, data.end()));
-    return true;
-  }
+  // Video is routed through snowmix
   return false;
 }

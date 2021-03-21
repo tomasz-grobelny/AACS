@@ -3,6 +3,7 @@
 #include "FfsFunction.h"
 #include "Gadget.h"
 #include "utils.h"
+#include <ServerUtils.h>
 #include <iostream>
 #include <stdexcept>
 #include <sys/mount.h>

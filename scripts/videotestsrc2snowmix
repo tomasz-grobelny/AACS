@@ -1,0 +1,13 @@
+#!/bin/bash
+CONTROL_PIPE=/tmp/aacs_feed1
+width=800
+height=480
+framerate="30/1"
+gstlaunch=gst-launch-1.0
+SRC="videotestsrc pattern=1 "
+CONVERT="videoconvert ! videorate ! videoscale ! videoconvert"
+MIXERFORMAT="video/x-raw, format=BGRA, pixel-aspect-ratio=1/1, interlace-mode=progressive, framerate=$framerate, width=$width, height=$height"
+SHMSIZE=`echo "$width * $height * 4 * 22"|bc`
+SHMSINK="shmsink wait-for-connection=0 sync=true shm-size=$SHMSIZE socket-path=$CONTROL_PIPE"
+rm -f $CONTROL_PIPE
+echo $gstlaunch -v $SRC ! $CONVERT ! $MIXERFORMAT ! $SHMSINK

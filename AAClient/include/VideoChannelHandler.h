@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ChannelHandler.h"
+#include <gst/gstelement.h>
 
 class VideoChannelHandler : public ChannelHandler {
   void sendChannelOpenResponse();
@@ -10,8 +11,11 @@ class VideoChannelHandler : public ChannelHandler {
   void sendVideoFocusIndication();
   void sendAck();
 
-  void sendAvMediaIndication(const std::vector<uint8_t> &data);
-  void sendAvMediaIndicationWithTimestamp(const std::vector<uint8_t> &data);
+  GstElement *pipeline;
+  GstElement* app_source;
+  void createAppSource();
+  void pushDataToPipeline(uint64_t ts, const std::vector<uint8_t>& data);
+  uint64_t startTimestamp;
 
 public:
   VideoChannelHandler(uint8_t channelId);

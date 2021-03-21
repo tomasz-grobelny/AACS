@@ -3,6 +3,7 @@
 #include "MassStorageFunction.h"
 #include "Gadget.h"
 #include "utils.h"
+#include <ServerUtils.h>
 #include <usbg/function/ms.h>
 
 using namespace std;

@@ -19,7 +19,8 @@ include_directories(${gst_INCLUDE_DIRS})
 include(${CMAKE_CURRENT_SOURCE_DIR}/../proto/CMakeLists.txt)
 
 add_executable(AAServer main.cpp 
-    src/utils.cpp 
+    ../src/utils.cpp 
+    src/ServerUtils.cpp 
     src/descriptors.cpp
     src/Library.cpp
     src/Function.cpp

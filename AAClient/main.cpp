@@ -4,6 +4,7 @@
 #include "Library.h"
 #include "Message.h"
 #include <cstdint>
+#include <gst/gst.h>
 #include <iterator>
 #include <libusb.h>
 #include <stdexcept>
@@ -66,6 +67,7 @@ int main(int argc, char **argv) {
   auto fd = getSocketFd(argv[1]);
   auto sd = getServiceDescriptor(fd);
   cout << "got sd" << endl;
+  gst_init(&argc, &argv);
   AaCommunicator communicator(*device, sd);
   int hi = 0;
   auto th = std::thread([fd, &communicator, &hi]() {
