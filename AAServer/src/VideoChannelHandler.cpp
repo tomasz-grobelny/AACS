@@ -11,6 +11,8 @@
 #include <gst/gstutils.h>
 #include <iostream>
 
+#include <linux/types.h>
+
 using namespace std;
 
 GstFlowReturn VideoChannelHandler::new_sample(GstElement *sink,

@@ -17,7 +17,7 @@ If you want to try out this piece of code and/or help just buy Odroid N2. I do n
 The software is being developed on:
 * latest (as of this writing) stable version of Ubuntu (19.10)
 * kernel 5.x - stock 4.9.x version has issues with gadget support
-* latest git version of libusbgx (https://github.com/kopasiak/libusbgx)
+* latest git version of libusbgx (https://github.com/kopasiak/libusbgx or upstream at: https://github.com/libusbgx/libusbgx)
 
 # Installation
 Instructions how to set up runtime and development environment can be found in the [installation instructions document](doc/INSTALL.md).

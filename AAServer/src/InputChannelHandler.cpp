@@ -8,6 +8,8 @@
 #include <iostream>
 #include <vector>
 
+#include <linux/types.h>
+
 using namespace std;
 
 InputChannelHandler::InputChannelHandler(uint8_t channelId,
