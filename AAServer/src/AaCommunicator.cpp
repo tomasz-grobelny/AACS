@@ -582,8 +582,8 @@ AaCommunicator::~AaCommunicator() {
     close(ep1fd);
   if (ep0fd != -1)
     close(ep0fd);
-  if (pd)
-    pcap_close(pd);
   if (pdumper)
     pcap_dump_close(pdumper);
+  if (pd)
+    pcap_close(pd);
 }
