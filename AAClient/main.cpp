@@ -73,43 +73,62 @@ int main(int argc, char **argv) {
   AaCommunicator communicator(*device, sd);
   int hi = 0;
   auto th = std::thread([fd, &communicator, &hi]() {
-    uint8_t buffer[100 * 1024];
-    while (true) {
-      auto ret = checkError(read(fd, buffer, sizeof buffer), {EINTR, EAGAIN});
-      if (ret <= 0)
-        continue;
-      cout << hi++ << " data from headunit: " << ret;
+    try {
+      uint8_t buffer[100 * 1024];
+      while (true) {
+        auto ret = checkError(read(fd, buffer, sizeof buffer), {EINTR, EAGAIN});
+        if (ret <= 0)
+          continue;
+        cout << hi++ << " data from headunit: " << ret;
 #ifdef PRINT_PACKET
-      cout << " c: " << (int)buffer[0];
-      for (auto i = 2; i < ret; i++) {
-        cout << " 0x" << hex << (int)buffer[i];
-      }
+        cout << " c: " << (int)buffer[0];
+        for (auto i = 2; i < ret; i++) {
+          cout << " 0x" << hex << (int)buffer[i];
+        }
 #endif
-      cout << dec << endl;
-      communicator.sendMessagePublic(buffer[0], (bool)buffer[1],
-                                     vector<uint8_t>(buffer + 2, buffer + ret));
+        cout << dec << endl;
+        communicator.sendMessagePublic(
+            buffer[0], (bool)buffer[1],
+            vector<uint8_t>(buffer + 2, buffer + ret));
+      }
+    } catch (std::exception &ex) {
+      cout << "thread error: " << ex.what() << endl;
+      throw;
     }
   });
   int pi = 0;
   communicator.channelMessage.connect(
       [fd, &pi](uint8_t channel, bool specific,
                 const std::vector<uint8_t> &msg) {
-        vector<uint8_t> message;
-        message.push_back(0x01); // raw data
-        message.push_back(channel);
-        message.push_back(specific ? 0xff : 0x00);
-        copy(msg.begin(), msg.end(), back_inserter(message));
-        auto ret = write(fd, message.data(), message.size());
-        if (ret != message.size())
-          throw runtime_error("write failed");
-        cout << pi++ << " data from phone: " << message.size();
+        try {
+          vector<uint8_t> message;
+          message.push_back(0x01); // raw data
+          message.push_back(channel);
+          message.push_back(specific ? 0xff : 0x00);
+          copy(msg.begin(), msg.end(), back_inserter(message));
+          while (true) {
+            auto ret = checkError(write(fd, message.data(), message.size()),
+                                  {EAGAIN, EINTR});
+            if (ret == 0)
+              continue;
+            if (ret > 0 && ret == message.size())
+              break;
+            throw runtime_error(fmt::format("Sending {} bytes failed {}",
+                                            to_string(message.size()),
+                                            to_string(ret)));
+          }
+          cout << pi++ << " data from phone: " << message.size();
 #ifdef PRINT_PACKET
-        cout << " c: " << (int)channel;
-        for (auto i = 0; i < msg.size(); i++) {
-          cout << " 0x" << hex << (int)msg.data()[i];
-        }
+          cout << " c: " << (int)channel;
+          for (auto i = 0; i < msg.size(); i++) {
+            cout << " 0x" << hex << (int)msg.data()[i];
+          }
 #endif
-        cout << dec << endl;
+          cout << dec << endl;
+        } catch (std::exception &ex) {
+          cout << "channelMessage error: " << ex.what() << endl;
+          throw;
+        }
       });
   communicator.setup();
   // sleep(100000);
