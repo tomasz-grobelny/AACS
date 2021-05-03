@@ -1,0 +1,17 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message AudioType
+{
+    enum Enum
+    {
+        None = 0;
+        Speech = 1;
+        System = 2;
+        Media = 3;
+        Alarm = 4;
+    }
+}

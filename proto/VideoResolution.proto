@@ -1,0 +1,16 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message VideoResolution
+{
+    enum Enum
+    {
+        None = 0;
+        H480 = 1;
+        H720 = 2;
+        H1080 = 3;
+    }
+}

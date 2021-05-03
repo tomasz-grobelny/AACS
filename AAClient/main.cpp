@@ -3,7 +3,9 @@
 #include "AaCommunicator.h"
 #include "Library.h"
 #include "Message.h"
+#include "utils.h"
 #include <cstdint>
+#include <fmt/core.h>
 #include <gst/gst.h>
 #include <iterator>
 #include <libusb.h>
@@ -71,11 +73,11 @@ int main(int argc, char **argv) {
   AaCommunicator communicator(*device, sd);
   int hi = 0;
   auto th = std::thread([fd, &communicator, &hi]() {
-    uint8_t buffer[10240];
+    uint8_t buffer[100 * 1024];
     while (true) {
-      auto ret = read(fd, buffer, sizeof buffer);
+      auto ret = checkError(read(fd, buffer, sizeof buffer), {EINTR, EAGAIN});
       if (ret <= 0)
-        throw runtime_error("read failed");
+        continue;
       cout << hi++ << " data from headunit: " << ret;
 #ifdef PRINT_PACKET
       cout << " c: " << (int)buffer[0];

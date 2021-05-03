@@ -20,4 +20,8 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
     ../proto/ButtonsEvent.proto
     ../proto/TouchLocation.proto
     ../proto/TouchAction.proto
+    ../proto/AudioType.proto
+    ../proto/VideoConfig.proto
+    ../proto/VideoResolution.proto
+    ../proto/VideoFps.proto
     )

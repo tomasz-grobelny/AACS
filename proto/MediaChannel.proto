@@ -5,8 +5,14 @@ syntax="proto2";
 package tag.aas;
 
 import "MediaStreamType.proto";
+import "AudioType.proto";
+import "AudioConfig.proto";
+import "VideoConfig.proto";
 
 message MediaChannel
 {
     required MediaStreamType.Enum media_type = 1;
+    optional AudioType.Enum audio_type = 2;
+    repeated AudioConfig audio_configs = 3;
+    repeated VideoConfig video_configs = 4;
 }

@@ -1,0 +1,18 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+import "VideoFps.proto";
+import "VideoResolution.proto";
+
+message VideoConfig
+{
+    required VideoResolution.Enum video_resolution = 1;
+    required VideoFps.Enum video_fps = 2;
+    required uint32 margin_width = 3;
+    required uint32 margin_height = 4;
+    required uint32 dpi = 5;
+    optional uint32 additional_depth = 6;
+}

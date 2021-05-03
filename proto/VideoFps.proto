@@ -1,0 +1,15 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message VideoFps
+{
+    enum Enum
+    {
+        None = 0;
+        F30 = 1;
+        F60 = 2;
+    }
+}
