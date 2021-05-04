@@ -24,4 +24,6 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
     ../proto/VideoConfig.proto
     ../proto/VideoResolution.proto
     ../proto/VideoFps.proto
+    ../proto/PingRequest.proto
+    ../proto/PingResponse.proto
     )

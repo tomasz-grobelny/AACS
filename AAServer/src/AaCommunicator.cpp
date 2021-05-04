@@ -9,6 +9,8 @@
 #include "InputChannelHandler.h"
 #include "MediaStreamType.pb.h"
 #include "Message.h"
+#include "PingRequest.pb.h"
+#include "PingResponse.pb.h"
 #include "ServiceDiscoveryRequest.pb.h"
 #include "ServiceDiscoveryResponse.pb.h"
 #include "Udc.h"
@@ -238,10 +240,31 @@ void AaCommunicator::handleMessageContent(const Message &message) {
   } else if (messageType == MessageType::ServiceDiscoveryResponse) {
     cout << "got service discovery response" << endl;
     handleServiceDiscoveryResponse(shortView + 1, msg.size() - sizeof(__u16));
+  } else if (messageType == MessageType::PingRequest) {
+    cout << "got ping request" << endl;
+    handlePingRequest(shortView + 1, msg.size() - sizeof(__u16));
   } else {
     throw std::runtime_error("Unhandled message type: " +
                              std::to_string(messageType));
   }
+}
+
+void AaCommunicator::handlePingRequest(const void *buf, size_t nbytes) {
+  class tag::aas::PingRequest preq;
+  preq.ParseFromArray(buf, nbytes);
+  std::cout << preq.DebugString() << std::endl;
+
+  tag::aas::PingResponse presp;
+  presp.set_timestamp(preq.timestamp());
+  int bufSize = presp.ByteSize();
+  uint8_t buffer[bufSize];
+  if (!presp.SerializeToArray(buffer, bufSize))
+    throw aa_runtime_error("presp.SerializeToArray failed");
+
+  std::vector<uint8_t> plainMsg;
+  pushBackInt16(plainMsg, MessageType::PingResponse);
+  copy(buffer, buffer + bufSize, std::back_inserter(plainMsg));
+  sendMessage(0, EncryptionType::Plain | FrameType::Bulk | MessageTypeFlags::Specific, plainMsg);
 }
 
 void AaCommunicator::handleSslHandshake(const void *buf, size_t nbytes) {

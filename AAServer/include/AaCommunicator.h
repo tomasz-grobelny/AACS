@@ -44,6 +44,7 @@ class AaCommunicator {
   void sendMessage(uint8_t channel, uint8_t flags,
                    const std::vector<uint8_t> &buf);
   void sendVersionResponse(__u16 major, __u16 minor);
+  void handlePingRequest(const void *buf, size_t nbytes);
   void handleVersionRequest(const void *buf, size_t nbytes);
   void handleSslHandshake(const void *buf, size_t nbytes);
   void sendServiceDiscoveryRequest();
