@@ -137,6 +137,16 @@ function aaserverlog.dissector(tvbuf,pktinfo,root)
             pktinfo.private["pb_msg_type"] = "message," .. "tag.aas.ChannelOpenResponse"
             dissector:call(tvbuf(offset):tvb(), pktinfo, tree)
             pktinfo.cols.info:set("Channel Open Response")
+    elseif control_message_type == 11 then
+            local dissector = Dissector.get("protobuf")
+            pktinfo.private["pb_msg_type"] = "message," .. "tag.aas.PingRequest"
+            dissector:call(tvbuf(offset):tvb(), pktinfo, tree)
+            pktinfo.cols.info:set("Ping Request")
+    elseif control_message_type == 12 then
+            local dissector = Dissector.get("protobuf")
+            pktinfo.private["pb_msg_type"] = "message," .. "tag.aas.PingResponse"
+            dissector:call(tvbuf(offset):tvb(), pktinfo, tree)
+            pktinfo.cols.info:set("Ping Response")
     end
     return pktlen
 end
