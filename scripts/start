@@ -54,11 +54,13 @@ fi
 
 (
 cd $SCRIPTSDIR/../build/AAServer/
+i=0;
 while true; do
     date;
     rm -f socket
-    ./AAServer --dumpfile=$LOGDIR/dump.pcap;
+    ./AAServer --dumpfile=$LOGDIR/dump.pcap.$i;
     sleep 1;
+    ((i++));
 done
 ) > $LOGDIR/Server.log 2>&1 &
 

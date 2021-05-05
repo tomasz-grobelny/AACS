@@ -1,0 +1,11 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message PingRequest
+{
+    required int64 timestamp = 1;
+    optional int32 unknown_1 = 2;
+}
