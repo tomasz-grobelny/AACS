@@ -12,12 +12,12 @@
 #include <iostream>
 
 #include <linux/types.h>
+#include <thread>
 
 using namespace std;
 
 GstFlowReturn VideoChannelHandler::new_sample(GstElement *sink,
                                               VideoChannelHandler *_this) {
-  static bool firstSample = true;
   GstSample *sample;
   g_signal_emit_by_name(sink, "pull-sample", &sample);
   if (!sample) {
@@ -27,9 +27,6 @@ GstFlowReturn VideoChannelHandler::new_sample(GstElement *sink,
   auto buffer = gst_sample_get_buffer(sample);
 
   vector<uint8_t> msgToHeadunit;
-  if (firstSample) {
-    _this->openChannel();
-  }
   if (buffer->pts == -1) {
     pushBackInt16(msgToHeadunit, MediaMessageType::MediaIndication);
   } else {
@@ -46,7 +43,6 @@ GstFlowReturn VideoChannelHandler::new_sample(GstElement *sink,
                         msgToHeadunit);
 
   gst_sample_unref(sample);
-  firstSample = false;
   return GST_FLOW_OK;
 }
 
@@ -71,7 +67,8 @@ VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
   auto videoscale = gst_element_factory_make("videoscale", "videoscale");
   auto videorate = gst_element_factory_make("videorate", "videorate");
   auto x264enc = gst_element_factory_make("x264enc", "x264enc");
-  g_object_set(x264enc, "speed-preset", 1, "key-int-max", 25, NULL);
+  g_object_set(x264enc, "speed-preset", 1, "key-int-max", 25, "aud", FALSE,
+               NULL);
   auto h264caps = gst_caps_new_simple(
       "video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "profile",
       G_TYPE_STRING, "baseline", "width", G_TYPE_INT, 800, "height", G_TYPE_INT,
@@ -119,7 +116,11 @@ VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
   g_signal_connect(G_OBJECT(bus), "message::error", (GCallback)error_cb, this);
   gst_object_unref(bus);
 
-  gst_element_set_state(pipeline, GST_STATE_PLAYING);
+  auto th = std::thread([this]() {
+    openChannel();
+    gst_element_set_state(pipeline, GST_STATE_PLAYING);
+  });
+  th.detach();
 }
 
 VideoChannelHandler::~VideoChannelHandler() {}
@@ -155,7 +156,7 @@ void VideoChannelHandler::sendStartIndication() {
   plainMsg.push_back(0x08);
   plainMsg.push_back(0x00);
   plainMsg.push_back(0x10);
-  plainMsg.push_back(0x00);
+  plainMsg.push_back(0x01);
   sendToHeadunit(channelId, FrameType::Bulk | EncryptionType::Encrypted,
                  plainMsg);
 }
