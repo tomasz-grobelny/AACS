@@ -18,6 +18,7 @@ using namespace std;
 
 GstFlowReturn VideoChannelHandler::new_sample(GstElement *sink,
                                               VideoChannelHandler *_this) {
+  static bool firstSample = true;
   GstSample *sample;
   g_signal_emit_by_name(sink, "pull-sample", &sample);
   if (!sample) {
@@ -27,13 +28,14 @@ GstFlowReturn VideoChannelHandler::new_sample(GstElement *sink,
   auto buffer = gst_sample_get_buffer(sample);
 
   vector<uint8_t> msgToHeadunit;
-  if (buffer->pts == -1) {
+  if (firstSample) {
     pushBackInt16(msgToHeadunit, MediaMessageType::MediaIndication);
   } else {
     pushBackInt16(msgToHeadunit,
                   MediaMessageType::MediaWithTimestampIndication);
     pushBackInt64(msgToHeadunit, buffer->pts / 1000);
   }
+  firstSample = false;
   GstMapInfo map;
   gst_buffer_map(buffer, &map, GST_MAP_READ);
   copy(map.data, map.data + map.size, back_inserter(msgToHeadunit));
@@ -133,8 +135,7 @@ void VideoChannelHandler::openChannel() {
   expectSetupResponse();
 }
 
-void VideoChannelHandler::disconnected(int clientId) {
-}
+void VideoChannelHandler::disconnected(int clientId) {}
 
 void VideoChannelHandler::sendSetupRequest() {
   std::vector<uint8_t> plainMsg;
