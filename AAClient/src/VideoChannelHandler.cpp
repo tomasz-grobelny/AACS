@@ -14,8 +14,8 @@
 
 using namespace std;
 
-VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
-    : ChannelHandler(channelId) {
+VideoChannelHandler::VideoChannelHandler(uint8_t channelId, uint8_t numConfigs)
+    : ChannelHandler(channelId), numVideoConfigs(numConfigs) {
   startTimestamp = 0;
 }
 
@@ -141,8 +141,9 @@ void VideoChannelHandler::sendSetupResponse() {
   pushBackInt16(msg, MediaMessageType::SetupResponse);
   tag::aas::MediaChannelSetupResponse mcsr;
   mcsr.set_unknown_field_1(2);
-  mcsr.set_unknown_field_2(1);
-  mcsr.set_unknown_field_3(0);
+  mcsr.set_max_unacked(4);
+  for (auto i = 0; i < numVideoConfigs; i++)
+    mcsr.add_configs(i);
   auto mcsrStr = mcsr.SerializeAsString();
   copy(mcsrStr.begin(), mcsrStr.end(), back_inserter(msg));
   sendToMobile(channelId, EncryptionType::Encrypted | FrameType::Bulk, msg);

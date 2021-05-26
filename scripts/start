@@ -58,7 +58,7 @@ i=0;
 while true; do
     date;
     rm -f socket
-    ./AAServer --dumpfile=$LOGDIR/dump.pcap.$i;
+    ./AAServer --dumpfile=$LOGDIR/AAServer_dump.pcap.$i;
     sleep 1;
     ((i++));
 done
@@ -66,10 +66,12 @@ done
 
 (
 cd $SCRIPTSDIR/../build/AAClient/
+i=0;
 while true; do
     sleep 1;
     date;
-    ./AAClient ../AAServer/socket;
+    ./AAClient --socket=../AAServer/socket --dumpfile=$LOGDIR/AAClient_dump.pcap.$i;
+    ((i++));
 done
 ) > $LOGDIR/Client.log 2>&1 &
 

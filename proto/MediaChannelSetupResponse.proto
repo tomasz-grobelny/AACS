@@ -7,6 +7,6 @@ package tag.aas;
 message MediaChannelSetupResponse
 {
     required uint32 unknown_field_1 = 1;
-    required uint32 unknown_field_2 = 2;
-    required uint32 unknown_field_3 = 3;
+    required uint32 max_unacked = 2;
+    repeated uint32 configs = 3;
 }

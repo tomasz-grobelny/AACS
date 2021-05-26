@@ -14,6 +14,7 @@
 #include <mutex>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include <pcap/pcap.h>
 #include <stdexcept>
 #include <unistd.h>
 #include <vector>
@@ -30,7 +31,8 @@ static libusb_device_handle *getHandle(const Device &dev) {
 }
 
 AaCommunicator::AaCommunicator(const Device &dev,
-                               const std::vector<uint8_t> &sd)
+                               const std::vector<uint8_t> &sd,
+                               const std::string &dumpfile)
     : device(dev), serviceDescription(sd),
       deviceHandle(getHandle(dev), [](auto *device) { libusb_close(device); }) {
   initializeSslContext();
@@ -45,9 +47,41 @@ AaCommunicator::AaCommunicator(const Device &dev,
              const std::vector<uint8_t> &data) {
         sendMessage(channelNumber, flags, data);
       });
+  cout << "dumpfile: " << dumpfile << endl;
+
+  if (!dumpfile.empty()) {
+    pd = pcap_open_dead(DLT_NULL, 65535);
+    pdumper = pcap_dump_open(pd, dumpfile.c_str());
+  }
 }
 
-AaCommunicator::~AaCommunicator() {}
+AaCommunicator::~AaCommunicator() {
+  if (pdumper)
+    pcap_dump_close(pdumper);
+  if (pd)
+    pcap_close(pd);
+}
+
+void AaCommunicator::logMessage(const Message &msg, bool direction) {
+  if (!pdumper)
+    return;
+  int pktSize = 8 + msg.content.size();
+  uint8_t buffer[pktSize];
+  buffer[0] = 0;
+  buffer[1] = 0;
+  buffer[2] = 0;
+  buffer[3] = 0;
+  buffer[4] = msg.channel;
+  buffer[5] = msg.flags;
+  buffer[6] = direction ? 1 : 0;
+  buffer[7] = 0;
+  copy(msg.content.begin(), msg.content.end(), buffer + 8);
+  struct pcap_pkthdr packet_header;
+  gettimeofday(&packet_header.ts, NULL);
+  packet_header.caplen = pktSize;
+  packet_header.len = pktSize;
+  pcap_dump((unsigned char *)pdumper, &packet_header, buffer);
+}
 
 void AaCommunicator::setup() {
   cout << dec;
@@ -104,8 +138,8 @@ void AaCommunicator::handleServiceDiscoveryRequest(const Message &msg) {
     if (ch.has_media_channel() &&
         ch.media_channel().media_type() ==
             tag::aas::MediaStreamType_Enum::MediaStreamType_Enum_Video) {
-      channelHandlers[ch.channel_id()] =
-          new VideoChannelHandler(ch.channel_id());
+      channelHandlers[ch.channel_id()] = new VideoChannelHandler(
+          ch.channel_id(), ch.media_channel().video_configs().size());
     } else if (ch.has_input_channel()) {
       channelHandlers[ch.channel_id()] =
           new InputChannelHandler(ch.channel_id());
@@ -264,6 +298,7 @@ void AaCommunicator::sendMessage(uint8_t channel, uint8_t flags,
   msg.channel = channel;
   msg.flags = flags;
   msg.content = buf;
+  logMessage(msg, false);
   {
     std::unique_lock<std::mutex> lk(sendQueueMutex);
     sendQueue.push_back(msg);
@@ -467,6 +502,7 @@ Message AaCommunicator::getMessage() {
   // if (totalLength != 0)
   // cout << "totalLength: " << totalLength << " " << msg.content.size() <<
   // endl;
+  logMessage(msg, true);
   return msg;
 }
 

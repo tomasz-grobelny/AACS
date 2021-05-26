@@ -10,6 +10,7 @@
 #include <memory>
 #include <mutex>
 #include <openssl/ossl_typ.h>
+#include <pcap/pcap.h>
 #include <thread>
 
 class AaCommunicator {
@@ -49,9 +50,14 @@ class AaCommunicator {
 
   ChannelHandler *channelHandlers[UINT8_MAX];
 
+  pcap_t *pd = nullptr;
+  pcap_dumper_t *pdumper = nullptr;
+  void logMessage(const Message &msg, bool direction);
+
 public:
   AaCommunicator(const Device &device,
-                 const std::vector<uint8_t> &serviceDescription);
+                 const std::vector<uint8_t> &serviceDescription,
+                 const std::string &dumpfile);
   ~AaCommunicator();
   void setup();
   boost::signals2::signal<void(uint8_t channelNumber, bool specific,

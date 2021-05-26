@@ -4,6 +4,7 @@
 #include "Library.h"
 #include "Message.h"
 #include "utils.h"
+#include <boost/program_options.hpp>
 #include <cstdint>
 #include <fmt/core.h>
 #include <gst/gst.h>
@@ -16,6 +17,7 @@
 #include <unistd.h>
 
 using namespace std;
+using namespace boost::program_options;
 
 int getSocketFd(std::string socketName) {
   int fd;
@@ -43,7 +45,24 @@ vector<uint8_t> getServiceDescriptor(int fd) {
   return vector<uint8_t>(buffer, buffer + ret);
 }
 
-int main(int argc, char **argv) {
+int mainInternal(int argc, char **argv) {
+  string socket;
+  string dumpfile;
+  options_description desc("Allowed options");
+  desc.add_options()("help", "produce help message")(
+      "dumpfile", value<string>(&dumpfile),
+      "specify pcap dumpfile for communication")(
+      "socket", value<string>(&socket)->required(), "specify AAServer socket");
+
+  variables_map vm;
+  store(parse_command_line(argc, argv, desc), vm);
+
+  if (vm.count("help")) {
+    cout << desc << "\n";
+    return 1;
+  }
+  notify(vm);
+
   Library lib;
   for (auto dev : lib.getDeviceList()) {
     try {
@@ -66,11 +85,11 @@ int main(int argc, char **argv) {
   if (device == nullptr)
     throw runtime_error("cannot find device");
   cout << "device found" << endl;
-  auto fd = getSocketFd(argv[1]);
+  auto fd = getSocketFd(socket);
   auto sd = getServiceDescriptor(fd);
   cout << "got sd" << endl;
   gst_init(&argc, &argv);
-  AaCommunicator communicator(*device, sd);
+  AaCommunicator communicator(*device, sd, dumpfile);
   int hi = 0;
   auto th = std::thread([fd, &communicator, &hi]() {
     try {
@@ -134,4 +153,12 @@ int main(int argc, char **argv) {
   // sleep(100000);
 
   return 0;
+}
+
+int main(int argc, char **argv) {
+  try {
+    mainInternal(argc, argv);
+  } catch (std::exception &ex) {
+    cout << "Error: " << ex.what() << endl;
+  }
 }

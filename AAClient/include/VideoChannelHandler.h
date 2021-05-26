@@ -16,9 +16,10 @@ class VideoChannelHandler : public ChannelHandler {
   void createAppSource();
   void pushDataToPipeline(uint64_t ts, const std::vector<uint8_t>& data);
   uint64_t startTimestamp;
+  uint8_t numVideoConfigs;
 
 public:
-  VideoChannelHandler(uint8_t channelId);
+  VideoChannelHandler(uint8_t channelId, uint8_t numConfigs);
   virtual ~VideoChannelHandler();
   virtual bool handleMessageFromMobile(uint8_t channelId, uint8_t flags,
                                        const std::vector<uint8_t> &data);
