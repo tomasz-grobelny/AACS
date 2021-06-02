@@ -28,22 +28,39 @@ GstFlowReturn VideoChannelHandler::new_sample(GstElement *sink,
   auto buffer = gst_sample_get_buffer(sample);
 
   vector<uint8_t> msgToHeadunit;
+  GstMapInfo map;
+  gst_buffer_map(buffer, &map, GST_MAP_READ);
   if (firstSample) {
+    firstSample = false;
     pushBackInt16(msgToHeadunit, MediaMessageType::MediaIndication);
+    auto needle06 = {0x00, 0x00, 0x01, 0x06};
+    auto start06 = std::search(map.data, map.data + map.size, begin(needle06),
+                               end(needle06));
+    auto needle65 = {0x00, 0x00, 0x01, 0x65};
+    auto start65 =
+        search(map.data, map.data + map.size, needle65.begin(), needle65.end());
+    copy(map.data, start06, back_inserter(msgToHeadunit));
+    _this->sendToHeadunit(_this->channelId,
+                          EncryptionType::Encrypted | FrameType::Bulk,
+                          msgToHeadunit);
+    msgToHeadunit.clear();
+    pushBackInt16(msgToHeadunit,
+                  MediaMessageType::MediaWithTimestampIndication);
+    pushBackInt64(msgToHeadunit, buffer->pts / 1000);
+    copy(start65, map.data + map.size, back_inserter(msgToHeadunit));
+    _this->sendToHeadunit(_this->channelId,
+                          EncryptionType::Encrypted | FrameType::Bulk,
+                          msgToHeadunit);
   } else {
     pushBackInt16(msgToHeadunit,
                   MediaMessageType::MediaWithTimestampIndication);
     pushBackInt64(msgToHeadunit, buffer->pts / 1000);
+    copy(map.data, map.data + map.size, back_inserter(msgToHeadunit));
+    _this->sendToHeadunit(_this->channelId,
+                          EncryptionType::Encrypted | FrameType::Bulk,
+                          msgToHeadunit);
   }
-  firstSample = false;
-  GstMapInfo map;
-  gst_buffer_map(buffer, &map, GST_MAP_READ);
-  copy(map.data, map.data + map.size, back_inserter(msgToHeadunit));
   gst_buffer_unmap(buffer, &map);
-  _this->sendToHeadunit(_this->channelId,
-                        EncryptionType::Encrypted | FrameType::Bulk,
-                        msgToHeadunit);
-
   gst_sample_unref(sample);
   return GST_FLOW_OK;
 }
@@ -63,14 +80,13 @@ VideoChannelHandler::VideoChannelHandler(uint8_t channelId)
   g_object_set(app_sink, "emit-signals", TRUE, NULL);
   g_signal_connect(app_sink, "new-sample", G_CALLBACK(new_sample), this);
 
-
   auto queue = gst_element_factory_make("queue", "queue");
   auto videoconvert = gst_element_factory_make("videoconvert", "videoconvert");
   auto videoscale = gst_element_factory_make("videoscale", "videoscale");
   auto videorate = gst_element_factory_make("videorate", "videorate");
   auto x264enc = gst_element_factory_make("x264enc", "x264enc");
   g_object_set(x264enc, "speed-preset", 1, "key-int-max", 25, "aud", FALSE,
-               NULL);
+               "insert-vui", TRUE, NULL);
   auto h264caps = gst_caps_new_simple(
       "video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "profile",
       G_TYPE_STRING, "baseline", "width", G_TYPE_INT, 800, "height", G_TYPE_INT,
