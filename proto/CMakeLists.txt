@@ -1,7 +1,9 @@
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS 
     ../proto/MediaStreamType.proto
     ../proto/MediaChannel.proto
+    ../proto/MediaChannelSetupRequest.proto
     ../proto/MediaChannelSetupResponse.proto
+    ../proto/MediaChannelStartIndication.proto
     ../proto/Channel.proto
     ../proto/ChannelOpenRequest.proto
     ../proto/ServiceDiscoveryRequest.proto

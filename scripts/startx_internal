@@ -35,7 +35,6 @@ while true; do
 done
 ) > $LOGDIR/osmand_launch.log 2>&1 &
 
-exit
 (
 cd $SCRIPTSDIR/../build/AAServer/
 date
@@ -54,6 +53,16 @@ while true; do
     sleep 3;
 done
 ) > $LOGDIR/GST.log 2>&1 &
+
+(
+AUDIOFORMAT='audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=2'
+while true; do
+    (
+    echo 'audio feed ctr isaudio 1\n'
+    gst-launch-1.0 -v audiotestsrc wave=12 is-live=true ! $AUDIOFORMAT ! fdsink fd=3 sync=true 3>&1 1>&2
+    ) | nc 127.0.0.1 9999
+done
+) > $LOGDIR/audio_src.log 2>&1 &
 
 (
 cd $SCRIPTSDIR/../build/GetEvents/

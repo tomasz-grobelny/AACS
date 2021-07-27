@@ -1,0 +1,11 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+package tag.aas;
+
+message MediaChannelStartIndication
+{
+    required int32 session = 1;
+    required uint32 config = 2;
+}

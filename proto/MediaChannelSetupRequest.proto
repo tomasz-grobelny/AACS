@@ -1,0 +1,12 @@
+// Distributed under GPLv3 only as specified in repository's root LICENSE file
+
+syntax="proto2";
+
+import "MediaStreamType.proto";
+
+package tag.aas;
+
+message MediaChannelSetupRequest
+{
+    required MediaStreamType.Enum stream_type = 1;
+}

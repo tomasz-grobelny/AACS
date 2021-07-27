@@ -1,6 +1,7 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
 #include "AaCommunicator.h"
+#include "AudioChannelHandler.h"
 #include "Channel.pb.h"
 #include "ChannelOpenRequest.pb.h"
 #include "Configuration.h"
@@ -116,6 +117,13 @@ void AaCommunicator::handleServiceDiscoveryResponse(const void *buf,
       channelTypeToChannelNumber[ChannelType::Video] = ch.channel_id();
       channelHandlers[ch.channel_id()] =
           new VideoChannelHandler(ch.channel_id());
+    } else if (ch.has_media_channel() &&
+               ch.media_channel().media_type() ==
+                   tag::aas::MediaStreamType_Enum::MediaStreamType_Enum_Audio &&
+               ch.media_channel().has_audio_type() &&
+               ch.media_channel().audio_type() == tag::aas::AudioType::Media) {
+      channelHandlers[ch.channel_id()] =
+          new AudioChannelHandler(ch.channel_id());
     } else if (ch.has_input_channel()) {
       channelTypeToChannelNumber[ChannelType::Input] = ch.channel_id();
       auto available_buttons = ch.input_channel().available_buttons();
@@ -264,7 +272,9 @@ void AaCommunicator::handlePingRequest(const void *buf, size_t nbytes) {
   std::vector<uint8_t> plainMsg;
   pushBackInt16(plainMsg, MessageType::PingResponse);
   copy(buffer, buffer + bufSize, std::back_inserter(plainMsg));
-  sendMessage(0, EncryptionType::Plain | FrameType::Bulk | MessageTypeFlags::Specific, plainMsg);
+  sendMessage(
+      0, EncryptionType::Plain | FrameType::Bulk | MessageTypeFlags::Specific,
+      plainMsg);
 }
 
 void AaCommunicator::handleSslHandshake(const void *buf, size_t nbytes) {
