@@ -11,12 +11,13 @@ pkg_check_modules (libusb REQUIRED IMPORTED_TARGET libusb-1.0)
 pkg_check_modules (gst REQUIRED IMPORTED_TARGET gstreamer-base-1.0)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/external/backward-cpp)
 include_directories(${libusb_INCLUDE_DIR} include)
 include_directories(${gst_INCLUDE_DIRS})
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../proto/CMakeLists.txt)
 
-add_executable(AAClient main.cpp 
+add_executable(AAClient main.cpp
     src/Library.cpp
     src/Device.cpp
     src/AaCommunicator.cpp

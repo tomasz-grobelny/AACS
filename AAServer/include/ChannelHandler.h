@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <vector>
+#include <set>
 
 class ChannelHandler {
   bool gotChannelOpenResponse;
