@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ChannelHandler.h"
+#include <set>
 #include <vector>
 
 class InputChannelHandler : public ChannelHandler {
