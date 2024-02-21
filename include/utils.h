@@ -1,6 +1,6 @@
 // Distributed under GPLv3 only as specified in repository's root LICENSE file
 
-#include "backward.hpp"
+#include "../external/backward-cpp/backward.hpp"
 #include <stdexcept>
 #include <string>
 #include <sys/stat.h>
